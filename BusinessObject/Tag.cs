@@ -1,0 +1,21 @@
+﻿using System.ComponentModel.DataAnnotations;
+using BusinessObject.Common;
+
+namespace BusinessObject
+{
+    public class Tag : AuditableEntity
+    {
+        [Key]
+        public int TagId { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string TagName { get; set; }
+
+        [MaxLength(200)]
+        public string? Note { get; set; }
+
+        public virtual ICollection<NewsArticleTag> NewsArticleTags { get; set; } =
+            new List<NewsArticleTag>();
+    }
+}
