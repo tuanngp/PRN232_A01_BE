@@ -4,7 +4,7 @@ using BusinessObject.Common;
 
 namespace BusinessObject
 {
-    public class Category : AuditableEntity
+    public class Category : SoftDeleteEntity
     {
         [Key]
         public int CategoryId { get; set; }

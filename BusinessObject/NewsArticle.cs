@@ -5,7 +5,7 @@ using BusinessObject.Enums;
 
 namespace BusinessObject
 {
-    public class NewsArticle : AuditableEntity
+    public class NewsArticle : SoftDeleteEntity
     {
         [Key]
         public int NewsArticleId { get; set; }
@@ -38,7 +38,7 @@ namespace BusinessObject
         public virtual SystemAccount? CreatedBy { get; set; }
 
         [ForeignKey("UpdatedById")]
-        public virtual SystemAccount UpdatedBy { get; set; }
+        public virtual SystemAccount? UpdatedBy { get; set; }
 
         public virtual ICollection<NewsArticleTag> NewsArticleTags { get; set; } =
             new List<NewsArticleTag>();

@@ -1,4 +1,4 @@
-﻿namespace Repositories
+﻿namespace Repositories.Common
 {
     public interface IGenericRepository<T>
     {

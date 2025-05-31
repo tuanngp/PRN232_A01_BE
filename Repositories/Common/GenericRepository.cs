@@ -1,14 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Repositories
+namespace Repositories.Common
 {
-    public abstract class GenericRepository<T> : IGenericRepository<T>
+    public class GenericRepository<T> : IGenericRepository<T>
         where T : class
     {
         protected readonly FUNewsDbContext _context;
         protected readonly DbSet<T> _dbSet;
 
-        protected GenericRepository(FUNewsDbContext context)
+        public GenericRepository(FUNewsDbContext context)
         {
             _context = context;
             _dbSet = _context.Set<T>();

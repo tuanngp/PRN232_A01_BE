@@ -3,7 +3,7 @@ using BusinessObject.Common;
 
 namespace BusinessObject
 {
-    public class Tag : AuditableEntity
+    public class Tag : SoftDeleteEntity
     {
         [Key]
         public int TagId { get; set; }

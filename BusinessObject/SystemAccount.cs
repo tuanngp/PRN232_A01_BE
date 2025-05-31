@@ -22,6 +22,7 @@ namespace BusinessObject
         public string AccountPassword { get; set; }
 
         public AccountRole AccountRole { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public virtual ICollection<NewsArticle> CreatedNewsArticles { get; set; } =
             new List<NewsArticle>();
