@@ -1,23 +1,26 @@
 ﻿using System.Text;
+using System.Text.Json;
 using BusinessObject;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware;
 using Repositories;
 using Repositories.Impl;
+using Repositories.Interface;
 using Services;
+using Services.Auth;
 using Services.Impl;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -69,17 +72,23 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
 
             builder.Services.AddScoped<FUNewsDbContext>();
 
-            builder.Services.AddScoped<SystemAccountRepository>();
-            builder.Services.AddScoped<NewsArticleRepository>();
-            builder.Services.AddScoped<NewsArticleTagRepository>();
-            builder.Services.AddScoped<CategoryRepository>();
-            builder.Services.AddScoped<TagRepository>();
+            builder.Services.AddScoped<ISystemAccountRepository, SystemAccountRepository>();
+            builder.Services.AddScoped<INewsArticleRepository, NewsArticleRepository>();
+            builder.Services.AddScoped<INewsArticleTagRepository, NewsArticleTagRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<ITagRepository, TagRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddScoped<ISystemAccountService, SystemAccountService>();
             builder.Services.AddScoped<INewsArticleService, NewsArticleService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<ITagService, TagService>();
             builder.Services.AddScoped<INewsArticleTagService, NewsArticleTagService>();
+
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var issuer = jwtSettings["Issuer"];
@@ -120,6 +129,11 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
             });
             builder
                 .Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                    options.JsonSerializerOptions.WriteIndented = true;
+                })
                 .AddOData(opt =>
                     opt.Select()
                         .Filter()
@@ -131,6 +145,9 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 );
             var app = builder.Build();
 
+            // Đăng ký Exception Handling Middleware (phải đầu tiên)
+            app.UseExceptionHandling();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -138,10 +155,21 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
             }
 
             app.UseHttpsRedirection();
+
+            // Đăng ký OData Response Wrapper (trước authentication)
+            app.UseODataResponseWrapper();
+
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // Seed admin data
+            using (var scope = app.Services.CreateScope())
+            {
+                var seedDataService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+                await seedDataService.SeedAdminAccountAsync();
+            }
 
             app.Run();
 
@@ -153,6 +181,9 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 builder.EntitySet<NewsArticle>("NewsArticles");
                 builder.EntitySet<Category>("Categories");
                 builder.EntitySet<Tag>("Tags");
+                builder
+                    .EntityType<NewsArticleTag>()
+                    .HasKey(nt => new { nt.NewsArticleId, nt.TagId });
                 builder.EntitySet<NewsArticleTag>("NewsArticleTags");
 
                 return builder.GetEdmModel();

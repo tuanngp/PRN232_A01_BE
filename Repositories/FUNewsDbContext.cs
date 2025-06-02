@@ -14,6 +14,7 @@ namespace Repositories
         public DbSet<NewsArticle> NewsArticles { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<NewsArticleTag> NewsArticleTags { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

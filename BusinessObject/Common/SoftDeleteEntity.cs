@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BusinessObject.Common
 {
-    public abstract class SoftDeleteEntity : AuditableEntity
+    public abstract class SoftDeleteEntity : AuditableEntity, ISoftDelete
     {
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }

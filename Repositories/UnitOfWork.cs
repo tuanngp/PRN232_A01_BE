@@ -10,7 +10,8 @@ namespace Repositories
         INewsArticleRepository newsArticleRepository,
         INewsArticleTagRepository newsArticleTagRepository,
         ISystemAccountRepository systemAccountRepository,
-        ITagRepository tagRepository
+        ITagRepository tagRepository,
+        IRefreshTokenRepository refreshTokenRepository
     ) : IUnitOfWork, IDisposable
     {
         private readonly FUNewsDbContext _context = context;
@@ -22,6 +23,7 @@ namespace Repositories
         public INewsArticleTagRepository NewsArticleTags { get; } = newsArticleTagRepository;
         public ISystemAccountRepository SystemAccounts { get; } = systemAccountRepository;
         public ITagRepository Tags { get; } = tagRepository;
+        public IRefreshTokenRepository RefreshTokens { get; } = refreshTokenRepository;
 
         public IGenericRepository<T> GetRepository<T>()
             where T : class

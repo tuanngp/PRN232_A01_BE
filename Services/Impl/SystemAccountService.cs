@@ -1,11 +1,9 @@
 ﻿using BusinessObject;
-using BusinessObject.Common;
 using BusinessObject.Enums;
 using Microsoft.Extensions.Logging;
 using Repositories;
 using Repositories.Interface;
-using System.Security.Cryptography;
-using System.Text;
+using Services.Util;
 
 namespace Services.Impl
 {
@@ -18,7 +16,8 @@ namespace Services.Impl
         public SystemAccountService(
             ISystemAccountRepository accountRepository,
             ILogger<SystemAccountService> logger,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+        )
         {
             _accountRepository = accountRepository;
             _logger = logger;
@@ -38,15 +37,18 @@ namespace Services.Impl
                 if (await _accountRepository.IsEmailExistAsync(entity.AccountEmail))
                     throw new InvalidOperationException("Email already exists");
 
-                entity.AccountPassword = HashPassword(entity.AccountPassword);
-                
+                entity.AccountPassword = PasswordUtil.HashPassword(entity.AccountPassword);
+
                 entity.IsActive = true;
                 entity.CreatedDate = DateTime.UtcNow;
 
                 await _accountRepository.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Created new account with ID: {AccountId}", entity.AccountId);
+                _logger.LogInformation(
+                    "Created new account with ID: {AccountId}",
+                    entity.AccountId
+                );
                 return entity;
             }
             catch (Exception ex)
@@ -66,7 +68,7 @@ namespace Services.Impl
 
                 account.IsActive = false;
                 account.ModifiedDate = DateTime.UtcNow;
-                
+
                 _accountRepository.Update(account);
                 await _unitOfWork.SaveChangesAsync();
 
@@ -117,7 +119,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting account by email {Email}: {Message}", email, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting account by email {Email}: {Message}",
+                    email,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -130,7 +137,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting accounts by role {Role}: {Message}", role, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting accounts by role {Role}: {Message}",
+                    role,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -144,7 +156,9 @@ namespace Services.Impl
 
                 var existingAccount = await _accountRepository.GetByIdAsync(entity.AccountId);
                 if (existingAccount == null)
-                    throw new InvalidOperationException($"Account with ID {entity.AccountId} not found");
+                    throw new InvalidOperationException(
+                        $"Account with ID {entity.AccountId} not found"
+                    );
 
                 if (existingAccount.AccountEmail != entity.AccountEmail)
                 {
@@ -157,7 +171,7 @@ namespace Services.Impl
 
                 if (existingAccount.AccountPassword != entity.AccountPassword)
                 {
-                    entity.AccountPassword = HashPassword(entity.AccountPassword);
+                    entity.AccountPassword = PasswordUtil.HashPassword(entity.AccountPassword);
                 }
 
                 entity.ModifiedDate = DateTime.UtcNow;
@@ -201,15 +215,6 @@ namespace Services.Impl
             catch
             {
                 return false;
-            }
-        }
-
-        private string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
             }
         }
     }
