@@ -1,10 +1,9 @@
-using BusinessObject;
 using BusinessObject.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
-using NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs;
-using Services;
+using Services.DTOs;
+using Services.Interface;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 {
@@ -14,15 +13,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
     public class NewsArticleController : BaseController
     {
         private readonly INewsArticleService _newsArticleService;
-        private readonly ICategoryService _categoryService;
 
-        public NewsArticleController(
-            INewsArticleService newsArticleService,
-            ICategoryService categoryService
-        )
+        public NewsArticleController(INewsArticleService newsArticleService)
         {
             _newsArticleService = newsArticleService;
-            _categoryService = categoryService;
         }
 
         [HttpGet]
@@ -32,7 +26,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var articles = await _newsArticleService.GetAllAsync();
+                var articles = await _newsArticleService.GetAllNewsArticlesAsync();
                 return Success(articles, "Lấy danh sách bài viết thành công");
             }
             catch (Exception ex)
@@ -47,7 +41,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var article = await _newsArticleService.GetByIdAsync(id);
+                var article = await _newsArticleService.GetNewsArticleByIdAsync(id);
                 if (article == null)
                 {
                     return NotFound("Không tìm thấy bài viết");
@@ -80,27 +74,15 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                // Kiểm tra category có tồn tại không
-                var category = await _categoryService.GetByIdAsync(createDto.CategoryId);
-                if (category == null)
-                {
-                    return ValidationError(new { CategoryId = new[] { "Danh mục không tồn tại" } });
-                }
-
-                var article = new NewsArticle
-                {
-                    NewsTitle = createDto.NewsTitle,
-                    Headline = createDto.Headline,
-                    NewsContent = createDto.NewsContent,
-                    NewsSource = createDto.NewsSource,
-                    CategoryId = createDto.CategoryId,
-                    CreatedById = currentUserId.Value,
-                    CreatedDate = DateTime.UtcNow,
-                    NewsStatus = NewsStatus.Inactive, // Mặc định là Inactive, cần Admin duyệt
-                };
-
-                var createdArticle = await _newsArticleService.AddAsync(article);
+                var createdArticle = await _newsArticleService.CreateNewsArticleAsync(
+                    createDto,
+                    currentUserId.Value
+                );
                 return Created(createdArticle, "Tạo bài viết thành công");
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationError(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -122,54 +104,31 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                var existingArticle = await _newsArticleService.GetByIdAsync(id);
-                if (existingArticle == null)
-                {
-                    return NotFound("Không tìm thấy bài viết");
-                }
-
                 var (currentUserId, _, _) = GetCurrentUser();
                 if (!currentUserId.HasValue)
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                // Kiểm tra quyền: chỉ Admin hoặc người tạo bài viết mới có thể sửa
-                if (!HasRole("Admin") && existingArticle.CreatedById != currentUserId)
-                {
-                    return Forbidden("Bạn không có quyền sửa bài viết này");
-                }
-
-                // Kiểm tra category nếu có thay đổi
-                if (updateDto.CategoryId.HasValue)
-                {
-                    var category = await _categoryService.GetByIdAsync(updateDto.CategoryId.Value);
-                    if (category == null)
-                    {
-                        return ValidationError(
-                            new { CategoryId = new[] { "Danh mục không tồn tại" } }
-                        );
-                    }
-                    existingArticle.CategoryId = updateDto.CategoryId.Value;
-                }
-
-                // Cập nhật các trường
-                if (!string.IsNullOrEmpty(updateDto.NewsTitle))
-                    existingArticle.NewsTitle = updateDto.NewsTitle;
-
-                if (updateDto.Headline != null)
-                    existingArticle.Headline = updateDto.Headline;
-
-                if (!string.IsNullOrEmpty(updateDto.NewsContent))
-                    existingArticle.NewsContent = updateDto.NewsContent;
-
-                if (updateDto.NewsSource != null)
-                    existingArticle.NewsSource = updateDto.NewsSource;
-
-                existingArticle.UpdatedById = currentUserId.Value;
-
-                var updatedArticle = await _newsArticleService.UpdateAsync(existingArticle);
+                var updatedArticle = await _newsArticleService.UpdateNewsArticleAsync(
+                    id,
+                    updateDto,
+                    currentUserId.Value,
+                    HasRole("Admin")
+                );
                 return Success(updatedArticle, "Cập nhật bài viết thành công");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbidden(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationError(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -183,33 +142,28 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var article = await _newsArticleService.GetByIdAsync(id);
-                if (article == null)
-                {
-                    return NotFound("Không tìm thấy bài viết");
-                }
-
                 var (currentUserId, _, _) = GetCurrentUser();
                 if (!currentUserId.HasValue)
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                // Kiểm tra quyền: chỉ Admin hoặc Staff mới có thể xóa
-                if (!HasRole("Admin") && !HasRole("Staff"))
-                {
-                    return Forbidden("Bạn không có quyền xóa bài viết");
-                }
+                var isAdminOrStaff = HasRole("Admin") || HasRole("Staff");
+                var result = await _newsArticleService.DeleteNewsArticleAsync(
+                    id,
+                    currentUserId.Value,
+                    isAdminOrStaff
+                );
 
-                var result = await _newsArticleService.DeleteAsync(id);
                 if (result)
                 {
                     return Success("Xóa bài viết thành công");
                 }
-                else
-                {
-                    return Error("Không thể xóa bài viết");
-                }
+                return Error("Không thể xóa bài viết");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbidden(ex.Message);
             }
             catch (Exception ex)
             {
@@ -221,7 +175,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> ChangeNewsStatus(
             int id,
-            [FromBody] ChangeStatusDto statusDto
+            [FromBody] ChangeNewsStatusDto statusDto
         )
         {
             try
@@ -231,23 +185,22 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                var article = await _newsArticleService.GetByIdAsync(id);
-                if (article == null)
-                {
-                    return NotFound("Không tìm thấy bài viết");
-                }
-
                 var (currentUserId, _, _) = GetCurrentUser();
                 if (!currentUserId.HasValue)
                 {
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                article.NewsStatus = statusDto.Status;
-                article.UpdatedById = currentUserId.Value;
-
-                var updatedArticle = await _newsArticleService.UpdateAsync(article);
+                var updatedArticle = await _newsArticleService.ChangeNewsStatusAsync(
+                    id,
+                    statusDto,
+                    currentUserId.Value
+                );
                 return Success(updatedArticle, "Cập nhật trạng thái bài viết thành công");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {

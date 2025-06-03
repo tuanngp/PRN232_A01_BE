@@ -1,4 +1,4 @@
-namespace Services.Models.Auth
+namespace Services.DTOs.Auth
 {
     public class LoginResponse
     {

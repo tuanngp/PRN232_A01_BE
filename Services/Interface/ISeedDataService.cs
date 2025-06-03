@@ -1,4 +1,4 @@
-namespace Services.Auth
+namespace Services.Interface
 {
     public interface ISeedDataService
     {

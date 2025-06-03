@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using BusinessObject.Enums;
 
-namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
+namespace Services.DTOs
 {
     public class CreateNewsArticleDto
     {
@@ -42,7 +42,22 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
         public int? CategoryId { get; set; }
     }
 
-    public class ChangeStatusDto
+    public class NewsArticleDto
+    {
+        public int NewsArticleId { get; set; }
+        public string NewsTitle { get; set; } = string.Empty;
+        public string? Headline { get; set; }
+        public string NewsContent { get; set; } = string.Empty;
+        public string? NewsSource { get; set; }
+        public int CategoryId { get; set; }
+        public NewsStatus NewsStatus { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public int CreatedById { get; set; }
+        public int? UpdatedById { get; set; }
+    }
+
+    public class ChangeNewsStatusDto
     {
         [Required(ErrorMessage = "Trạng thái là bắt buộc")]
         public NewsStatus Status { get; set; }

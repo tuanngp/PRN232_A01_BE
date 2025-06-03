@@ -9,9 +9,9 @@ using NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware;
 using Repositories;
 using Repositories.Impl;
 using Repositories.Interface;
-using Services;
 using Services.Auth;
 using Services.Impl;
+using Services.Interface;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
 {
@@ -127,8 +127,11 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                         OnMessageReceived = context =>
                         {
                             // Ưu tiên lấy token từ Authorization header trước
-                            var token = context.Request.Headers["Authorization"]
-                                .FirstOrDefault()?.Split(" ").LastOrDefault();
+                            var token = context
+                                .Request.Headers["Authorization"]
+                                .FirstOrDefault()
+                                ?.Split(" ")
+                                .LastOrDefault();
 
                             // Nếu không có trong header, thử lấy từ cookie
                             if (string.IsNullOrEmpty(token))
@@ -147,14 +150,16 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                         {
                             if (context.Exception != null)
                             {
-                                Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+                                Console.WriteLine(
+                                    $"JWT Authentication failed: {context.Exception.Message}"
+                                );
                             }
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>
                         {
                             return Task.CompletedTask;
-                        }
+                        },
                     };
                 });
 
@@ -169,7 +174,12 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 {
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.WriteIndented = true;
-                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+                    options.JsonSerializerOptions.ReferenceHandler = System
+                        .Text
+                        .Json
+                        .Serialization
+                        .ReferenceHandler
+                        .Preserve;
                 })
                 .AddOData(opt =>
                     opt.Select()
@@ -194,16 +204,20 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
             app.UseHttpsRedirection();
 
             // Cấu hình để xử lý lỗi authentication
-            app.Use(async (context, next) =>
-            {
-                await next();
-
-                if (context.Response.StatusCode == 401)
+            app.Use(
+                async (context, next) =>
                 {
-                    context.Response.Clear();
-                    throw new UnauthorizedAccessException("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+                    await next();
+
+                    if (context.Response.StatusCode == 401)
+                    {
+                        context.Response.Clear();
+                        throw new UnauthorizedAccessException(
+                            "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn"
+                        );
+                    }
                 }
-            });
+            );
 
             // Đăng ký OData Response Wrapper (trước authentication)
             app.UseODataResponseWrapper();

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Services.Auth;
-using Services.Models.Auth;
+using Services.DTOs.Auth;
+using Services.Interface;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 {
@@ -10,17 +10,11 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
-        private readonly IConfiguration _configuration;
 
-        public AuthController(
-            IAuthService authService,
-            ILogger<AuthController> logger,
-            IConfiguration configuration
-        )
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
             _logger = logger;
-            _configuration = configuration;
         }
 
         [HttpPost("login")]
@@ -41,9 +35,18 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Email hoặc mật khẩu không chính xác.");
                 }
 
-                SetTokenCookie("accessToken", result.AccessToken, result.AccessTokenExpires);
-
-                SetTokenCookie("refreshToken", result.RefreshToken, result.RefreshTokenExpires);
+                _authService.SetTokenCookie(
+                    "accessToken",
+                    result.AccessToken,
+                    result.AccessTokenExpires,
+                    Response
+                );
+                _authService.SetTokenCookie(
+                    "refreshToken",
+                    result.RefreshToken,
+                    result.RefreshTokenExpires,
+                    Response
+                );
 
                 _logger.LogInformation("User {Email} logged in successfully", request.Email);
 
@@ -54,11 +57,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                 _logger.LogError(ex, "Error occurred during login for user {Email}", request.Email);
                 return Error("Có lỗi xảy ra trong quá trình đăng nhập.", 500);
             }
-        }
-
-        private void SetTokenCookie(string v, string refreshToken, object refreshTokenExpires)
-        {
-            throw new NotImplementedException();
         }
 
         [HttpPost("refresh-token")]
@@ -86,19 +84,29 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 
                 if (result == null)
                 {
-                    ClearTokenCookies();
+                    _authService.ClearTokenCookies(Response);
                     return Unauthorized("Refresh token không hợp lệ hoặc đã hết hạn.");
                 }
 
-                SetTokenCookie("accessToken", result.AccessToken, result.AccessTokenExpires);
-                SetTokenCookie("refreshToken", result.RefreshToken, result.RefreshTokenExpires);
+                _authService.SetTokenCookie(
+                    "accessToken",
+                    result.AccessToken,
+                    result.AccessTokenExpires,
+                    Response
+                );
+                _authService.SetTokenCookie(
+                    "refreshToken",
+                    result.RefreshToken,
+                    result.RefreshTokenExpires,
+                    Response
+                );
 
                 return Success(result.User, "Refresh token thành công.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during token refresh");
-                ClearTokenCookies();
+                _authService.ClearTokenCookies(Response);
                 return Error("Có lỗi xảy ra trong quá trình refresh token.", 500);
             }
         }
@@ -121,9 +129,18 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Refresh token không hợp lệ hoặc đã hết hạn.");
                 }
 
-                SetTokenCookie("accessToken", result.AccessToken, result.AccessTokenExpires);
-                SetTokenCookie("refreshToken", result.RefreshToken, result.RefreshTokenExpires);
-
+                _authService.SetTokenCookie(
+                    "accessToken",
+                    result.AccessToken,
+                    result.AccessTokenExpires,
+                    Response
+                );
+                _authService.SetTokenCookie(
+                    "refreshToken",
+                    result.RefreshToken,
+                    result.RefreshTokenExpires,
+                    Response
+                );
                 return Success(result, "Refresh token thành công.");
             }
             catch (Exception ex)
@@ -228,7 +245,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 
                 await _authService.RevokeAllUserTokensAsync(userId.Value, "User logged out");
 
-                ClearTokenCookies();
+                _authService.ClearTokenCookies(Response);
 
                 _logger.LogInformation("User {Email} logged out", email);
 
@@ -294,15 +311,17 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 
                         if (refreshResult != null)
                         {
-                            SetTokenCookie(
+                            _authService.SetTokenCookie(
                                 "accessToken",
                                 refreshResult.AccessToken,
-                                refreshResult.AccessTokenExpires
+                                refreshResult.AccessTokenExpires,
+                                Response
                             );
-                            SetTokenCookie(
+                            _authService.SetTokenCookie(
                                 "refreshToken",
                                 refreshResult.RefreshToken,
-                                refreshResult.RefreshTokenExpires
+                                refreshResult.RefreshTokenExpires,
+                                Response
                             );
 
                             return Success(
@@ -317,7 +336,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                         }
                     }
 
-                    ClearTokenCookies();
+                    _authService.ClearTokenCookies(Response);
                     return Success(new { isAuthenticated = false }, "Token hết hạn.");
                 }
 
@@ -331,48 +350,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     "Lỗi khi kiểm tra trạng thái đăng nhập."
                 );
             }
-        }
-
-        private void SetTokenCookie(string cookieName, string token, DateTime expires)
-        {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true, // Ngăn chặn truy cập từ JavaScript
-                Secure = true, // Chỉ gửi qua HTTPS (trong production)
-                SameSite = SameSiteMode.Strict, // Bảo vệ CSRF
-                Expires = expires,
-                Path = "/",
-                Domain = _configuration["Cookie:Domain"], // Có thể config domain
-            };
-
-            // Trong development, có thể tắt Secure để test với HTTP
-            if (_configuration.GetValue<bool>("Development:AllowInsecureCookies"))
-            {
-                cookieOptions.Secure = false;
-            }
-
-            Response.Cookies.Append(cookieName, token, cookieOptions);
-        }
-
-        private void ClearTokenCookies()
-        {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(-1),
-                Path = "/",
-                Domain = _configuration["Cookie:Domain"],
-            };
-
-            if (_configuration.GetValue<bool>("Development:AllowInsecureCookies"))
-            {
-                cookieOptions.Secure = false;
-            }
-
-            Response.Cookies.Append("accessToken", "", cookieOptions);
-            Response.Cookies.Append("refreshToken", "", cookieOptions);
         }
     }
 }

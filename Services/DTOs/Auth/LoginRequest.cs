@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Services.Models.Auth
+namespace Services.DTOs.Auth
 {
     public class LoginRequest
     {
@@ -11,4 +11,4 @@ namespace Services.Models.Auth
         [Required]
         public string Password { get; set; } = string.Empty;
     }
-} 
+}

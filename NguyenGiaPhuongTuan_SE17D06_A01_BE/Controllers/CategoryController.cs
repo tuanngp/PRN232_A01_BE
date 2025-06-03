@@ -1,9 +1,8 @@
-using BusinessObject;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
-using NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs;
-using Services;
+using Services.DTOs;
+using Services.Interface;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 {
@@ -26,7 +25,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var categories = await _categoryService.GetAllAsync();
+                var categories = await _categoryService.GetAllCategoriesAsync();
                 return Success(categories, "Lấy danh sách danh mục thành công");
             }
             catch (Exception ex)
@@ -41,7 +40,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var category = await _categoryService.GetByIdAsync(id);
+                var category = await _categoryService.GetCategoryByIdAsync(id);
                 if (category == null)
                 {
                     return NotFound("Không tìm thấy danh mục");
@@ -61,11 +60,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var allCategories = await _categoryService.GetAllAsync();
-                var subCategories = allCategories
-                    .Where(c => c.ParentCategoryId == parentId)
-                    .ToList();
-
+                var subCategories = await _categoryService.GetSubCategoriesAsync(parentId);
                 return Success(subCategories, "Lấy danh sách danh mục con thành công");
             }
             catch (Exception ex)
@@ -80,9 +75,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var allCategories = await _categoryService.GetAllAsync();
-                var rootCategories = allCategories.Where(c => c.ParentCategoryId == null).ToList();
-
+                var rootCategories = await _categoryService.GetRootCategoriesAsync();
                 return Success(rootCategories, "Lấy danh sách danh mục gốc thành công");
             }
             catch (Exception ex)
@@ -102,28 +95,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                if (createDto.ParentCategoryId.HasValue)
-                {
-                    var parentCategory = await _categoryService.GetByIdAsync(
-                        createDto.ParentCategoryId.Value
-                    );
-                    if (parentCategory == null)
-                    {
-                        return ValidationError(
-                            new { ParentCategoryId = new[] { "Danh mục cha không tồn tại" } }
-                        );
-                    }
-                }
-
-                var category = new Category
-                {
-                    CategoryName = createDto.CategoryName,
-                    CategoryDescription = createDto.CategoryDescription,
-                    ParentCategoryId = createDto.ParentCategoryId,
-                    IsActive = true,
-                };
-
-                var createdCategory = await _categoryService.AddAsync(category);
+                var createdCategory = await _categoryService.AddAsync(createDto);
                 return Created(createdCategory, "Tạo danh mục thành công");
             }
             catch (Exception ex)
@@ -146,48 +118,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                var existingCategory = await _categoryService.GetByIdAsync(id);
-                if (existingCategory == null)
-                {
-                    return NotFound("Không tìm thấy danh mục");
-                }
-
-                if (updateDto.ParentCategoryId.HasValue)
-                {
-                    if (updateDto.ParentCategoryId.Value == id)
-                    {
-                        return ValidationError(
-                            new { ParentCategoryId = new[] { "Danh mục không thể tự tham chiếu" } }
-                        );
-                    }
-
-                    var parentCategory = await _categoryService.GetByIdAsync(
-                        updateDto.ParentCategoryId.Value
-                    );
-                    if (parentCategory == null)
-                    {
-                        return ValidationError(
-                            new { ParentCategoryId = new[] { "Danh mục cha không tồn tại" } }
-                        );
-                    }
-
-                    existingCategory.ParentCategoryId = updateDto.ParentCategoryId;
-                }
-                else if (updateDto.ParentCategoryId == null)
-                {
-                    existingCategory.ParentCategoryId = null;
-                }
-
-                if (!string.IsNullOrEmpty(updateDto.CategoryName))
-                    existingCategory.CategoryName = updateDto.CategoryName;
-
-                if (updateDto.CategoryDescription != null)
-                    existingCategory.CategoryDescription = updateDto.CategoryDescription;
-
-                if (updateDto.IsActive.HasValue)
-                    existingCategory.IsActive = updateDto.IsActive.Value;
-
-                var updatedCategory = await _categoryService.UpdateAsync(existingCategory);
+                var updatedCategory = await _categoryService.UpdateAsync(id, updateDto);
                 return Success(updatedCategory, "Cập nhật danh mục thành công");
             }
             catch (Exception ex)
@@ -206,16 +137,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                 if (category == null)
                 {
                     return NotFound("Không tìm thấy danh mục");
-                }
-
-                var allCategories = await _categoryService.GetAllAsync();
-                var hasSubCategories = allCategories.Any(c => c.ParentCategoryId == id);
-                if (hasSubCategories)
-                {
-                    return Error(
-                        "Không thể xóa danh mục có danh mục con. Vui lòng xóa danh mục con trước.",
-                        400
-                    );
                 }
 
                 var result = await _categoryService.DeleteAsync(id);
@@ -246,10 +167,14 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return NotFound("Không tìm thấy danh mục");
                 }
 
-                category.IsActive = !category.IsActive;
-                var updatedCategory = await _categoryService.UpdateAsync(category);
+                var updateDto = new UpdateCategoryDto { IsActive = !category.IsActive };
 
-                string message = category.IsActive
+                var updatedCategory = await _categoryService.UpdateAsync(
+                    category.CategoryId,
+                    updateDto
+                );
+
+                string message = updatedCategory.IsActive
                     ? "Kích hoạt danh mục thành công"
                     : "Tạm dừng danh mục thành công";
                 return Success(updatedCategory, message);

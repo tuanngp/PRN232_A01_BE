@@ -3,14 +3,16 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using BusinessObject;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Repositories;
 using Repositories.Interface;
-using Services.Models.Auth;
+using Services.DTOs.Auth;
+using Services.Interface;
 using Services.Util;
 
-namespace Services.Auth
+namespace Services.Impl
 {
     public class AuthService : IAuthService
     {
@@ -32,7 +34,7 @@ namespace Services.Auth
             _refreshTokenRepository = refreshTokenRepository;
         }
 
-        public async Task<LoginResponse> LoginAsync(LoginRequest request)
+        public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
             try
             {
@@ -43,7 +45,9 @@ namespace Services.Auth
 
                 if (user == null || !user.IsActive)
                 {
-                    throw new UnauthorizedAccessException("Email không tồn tại hoặc tài khoản đã bị vô hiệu hóa");
+                    throw new UnauthorizedAccessException(
+                        "Email không tồn tại hoặc tài khoản đã bị vô hiệu hóa"
+                    );
                 }
 
                 if (!PasswordUtil.VerifyPassword(request.Password, user.AccountPassword))
@@ -95,7 +99,7 @@ namespace Services.Auth
             }
         }
 
-        public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest request)
         {
             try
             {
@@ -113,7 +117,9 @@ namespace Services.Auth
                     || !int.TryParse(accountIdClaim, out var accountId)
                 )
                 {
-                    throw new UnauthorizedAccessException("Token không chứa thông tin người dùng hợp lệ");
+                    throw new UnauthorizedAccessException(
+                        "Token không chứa thông tin người dùng hợp lệ"
+                    );
                 }
 
                 var email = principal.FindFirst(ClaimTypes.Email)?.Value;
@@ -138,7 +144,9 @@ namespace Services.Auth
                 }
                 if (refreshToken.AccountId != accountId)
                 {
-                    throw new UnauthorizedAccessException("Refresh token không thuộc về người dùng này");
+                    throw new UnauthorizedAccessException(
+                        "Refresh token không thuộc về người dùng này"
+                    );
                 }
 
                 // Mark current refresh token as used
@@ -201,7 +209,9 @@ namespace Services.Auth
                 // If accountId is provided, only allow revocation if the token belongs to the user
                 if (accountId.HasValue && refreshToken.AccountId != accountId.Value)
                 {
-                    throw new UnauthorizedAccessException("Không có quyền thu hồi refresh token này");
+                    throw new UnauthorizedAccessException(
+                        "Không có quyền thu hồi refresh token này"
+                    );
                 }
 
                 // Revoke token
@@ -357,6 +367,52 @@ namespace Services.Auth
             {
                 throw new UnauthorizedAccessException($"Lỗi xác thực token: {ex.Message}");
             }
+        }
+
+        public void SetTokenCookie(
+            string cookieName,
+            string token,
+            DateTime expires,
+            HttpResponse response
+        )
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = expires,
+                Path = "/",
+                Domain = _configuration["Cookie:Domain"],
+            };
+
+            if (_configuration.GetValue<bool>("Development:AllowInsecureCookies"))
+            {
+                cookieOptions.Secure = false;
+            }
+
+            response.Cookies.Append(cookieName, token, cookieOptions);
+        }
+
+        public void ClearTokenCookies(HttpResponse response)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(-1),
+                Path = "/",
+                Domain = _configuration["Cookie:Domain"],
+            };
+
+            if (_configuration.GetValue<bool>("Development:AllowInsecureCookies"))
+            {
+                cookieOptions.Secure = false;
+            }
+
+            response.Cookies.Append("accessToken", "", cookieOptions);
+            response.Cookies.Append("refreshToken", "", cookieOptions);
         }
 
         private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)

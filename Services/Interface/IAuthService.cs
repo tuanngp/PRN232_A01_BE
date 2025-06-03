@@ -1,7 +1,8 @@
 using BusinessObject;
-using Services.Models.Auth;
+using Microsoft.AspNetCore.Http;
+using Services.DTOs.Auth;
 
-namespace Services.Auth
+namespace Services.Interface
 {
     public interface IAuthService
     {
@@ -12,5 +13,14 @@ namespace Services.Auth
         Task<string> GenerateTokenAsync(int accountId, string email, string role);
         Task<RefreshToken> GenerateRefreshTokenAsync(int accountId);
         Task<bool> ValidateTokenAsync(string token);
+
+        // Cookie management methods
+        void SetTokenCookie(
+            string cookieName,
+            string token,
+            DateTime expires,
+            HttpResponse response
+        );
+        void ClearTokenCookies(HttpResponse response);
     }
 }

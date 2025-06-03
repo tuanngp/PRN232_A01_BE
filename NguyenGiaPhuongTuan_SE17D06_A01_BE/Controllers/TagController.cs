@@ -1,9 +1,8 @@
-using BusinessObject;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
-using NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs;
-using Services;
+using Services.DTOs;
+using Services.Interface;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 {
@@ -26,7 +25,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var tags = await _tagService.GetAllAsync();
+                var tags = await _tagService.GetAllTagsAsync();
                 return Success(tags, "Lấy danh sách tag thành công");
             }
             catch (Exception ex)
@@ -41,7 +40,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var tag = await _tagService.GetByIdAsync(id);
+                var tag = await _tagService.GetTagByIdAsync(id);
                 if (tag == null)
                 {
                     return NotFound("Không tìm thấy tag");
@@ -68,12 +67,12 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     );
                 }
 
-                var allTags = await _tagService.GetAllAsync();
-                var searchResults = allTags
-                    .Where(t => t.TagName.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
+                var searchResults = await _tagService.SearchTagsAsync(keyword);
                 return Success(searchResults, $"Tìm kiếm tag với từ khóa '{keyword}' thành công");
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationError(new { keyword = new[] { ex.Message } });
             }
             catch (Exception ex)
             {
@@ -92,24 +91,12 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                var allTags = await _tagService.GetAllAsync();
-                var existingTag = allTags.FirstOrDefault(t =>
-                    t.TagName.Equals(createDto.TagName, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (existingTag != null)
-                {
-                    return ValidationError(new { TagName = new[] { "Tên tag đã tồn tại" } });
-                }
-
-                var tag = new Tag
-                {
-                    TagName = createDto.TagName.Trim(),
-                    Note = createDto.Note?.Trim(),
-                };
-
-                var createdTag = await _tagService.AddAsync(tag);
+                var createdTag = await _tagService.CreateTagAsync(createDto);
                 return Created(createdTag, "Tạo tag thành công");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ValidationError(new { TagName = new[] { ex.Message } });
             }
             catch (Exception ex)
             {
@@ -128,41 +115,16 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                var existingTag = await _tagService.GetByIdAsync(id);
-                if (existingTag == null)
-                {
-                    return NotFound("Không tìm thấy tag");
-                }
-
-                if (
-                    !string.IsNullOrEmpty(updateDto.TagName)
-                    && !updateDto.TagName.Equals(
-                        existingTag.TagName,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-                {
-                    var allTags = await _tagService.GetAllAsync();
-                    var duplicateTag = allTags.FirstOrDefault(t =>
-                        t.TagId != id
-                        && t.TagName.Equals(updateDto.TagName, StringComparison.OrdinalIgnoreCase)
-                    );
-
-                    if (duplicateTag != null)
-                    {
-                        return ValidationError(new { TagName = new[] { "Tên tag đã tồn tại" } });
-                    }
-
-                    existingTag.TagName = updateDto.TagName.Trim();
-                }
-
-                if (updateDto.Note != null)
-                {
-                    existingTag.Note = updateDto.Note.Trim();
-                }
-
-                var updatedTag = await _tagService.UpdateAsync(existingTag);
+                var updatedTag = await _tagService.UpdateTagAsync(id, updateDto);
                 return Success(updatedTag, "Cập nhật tag thành công");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationError(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -176,21 +138,12 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var tag = await _tagService.GetByIdAsync(id);
-                if (tag == null)
-                {
-                    return NotFound("Không tìm thấy tag");
-                }
-
                 var result = await _tagService.DeleteAsync(id);
                 if (result)
                 {
                     return Success("Xóa tag thành công");
                 }
-                else
-                {
-                    return Error("Không thể xóa tag");
-                }
+                return Error("Không thể xóa tag");
             }
             catch (Exception ex)
             {
@@ -204,18 +157,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var allTags = await _tagService.GetAllAsync();
-
-                var statistics = allTags
-                    .Select(tag => new TagStatisticsDto
-                    {
-                        TagId = tag.TagId,
-                        TagName = tag.TagName,
-                        ArticleCount = tag.NewsArticleTags?.Count ?? 0,
-                    })
-                    .OrderByDescending(s => s.ArticleCount)
-                    .ToList();
-
+                var statistics = await _tagService.GetTagStatisticsAsync();
                 return Success(statistics, "Lấy thống kê tag thành công");
             }
             catch (Exception ex)
@@ -230,24 +172,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                if (limit <= 0 || limit > 50)
-                {
-                    limit = 10;
-                }
-
-                var allTags = await _tagService.GetAllAsync();
-
-                var popularTags = allTags
-                    .OrderByDescending(tag => tag.NewsArticleTags?.Count ?? 0)
-                    .Take(limit)
-                    .Select(tag => new PopularTagDto
-                    {
-                        TagId = tag.TagId,
-                        TagName = tag.TagName,
-                        UsageCount = tag.NewsArticleTags?.Count ?? 0,
-                    })
-                    .ToList();
-
+                var popularTags = await _tagService.GetPopularTagsAsync(limit);
                 return Success(popularTags, "Lấy danh sách tag phổ biến thành công");
             }
             catch (Exception ex)
@@ -267,50 +192,15 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return ValidationError(ModelState);
                 }
 
-                if (bulkDto.TagNames == null || !bulkDto.TagNames.Any())
-                {
-                    return ValidationError(
-                        new { TagNames = new[] { "Danh sách tag không được để trống" } }
-                    );
-                }
-
-                var allTags = await _tagService.GetAllAsync();
-                var existingTagNames = allTags.Select(t => t.TagName.ToLower()).ToHashSet();
-
-                var createdTags = new List<Tag>();
-                var duplicates = new List<string>();
-
-                foreach (var tagName in bulkDto.TagNames)
-                {
-                    var trimmedName = tagName?.Trim();
-                    if (string.IsNullOrEmpty(trimmedName))
-                        continue;
-
-                    if (existingTagNames.Contains(trimmedName.ToLower()))
-                    {
-                        duplicates.Add(trimmedName);
-                        continue;
-                    }
-
-                    var newTag = new Tag { TagName = trimmedName, Note = bulkDto.Note };
-
-                    var createdTag = await _tagService.AddAsync(newTag);
-                    createdTags.Add(createdTag);
-                    existingTagNames.Add(trimmedName.ToLower());
-                }
-
-                var result = new
-                {
-                    CreatedTags = createdTags,
-                    DuplicateTagNames = duplicates,
-                    CreatedCount = createdTags.Count,
-                    DuplicateCount = duplicates.Count,
-                };
-
+                var result = await _tagService.CreateBulkTagsAsync(bulkDto);
                 return Success(
                     result,
-                    $"Tạo {createdTags.Count} tag thành công. {duplicates.Count} tag bị trùng lặp."
+                    $"Tạo {result.CreatedCount} tag thành công. {result.DuplicateCount} tag bị trùng lặp."
                 );
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationError(new { Message = ex.Message });
             }
             catch (Exception ex)
             {

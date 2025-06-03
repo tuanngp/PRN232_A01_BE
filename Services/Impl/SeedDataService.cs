@@ -2,6 +2,7 @@ using BusinessObject;
 using BusinessObject.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Services.Interface;
 using Services.Util;
 
 namespace Services.Auth
@@ -98,10 +99,26 @@ namespace Services.Auth
 
                 var categories = new List<Category>
                 {
-                    new Category { CategoryName = "Tin tức", CategoryDescription = "Tin tức chung về FPT University" },
-                    new Category { CategoryName = "Sự kiện", CategoryDescription = "Các sự kiện diễn ra tại FPT University" },
-                    new Category { CategoryName = "Đời sống sinh viên", CategoryDescription = "Đời sống và hoạt động của sinh viên" },
-                    new Category { CategoryName = "Học thuật", CategoryDescription = "Thông tin về học thuật và nghiên cứu" }
+                    new Category
+                    {
+                        CategoryName = "Tin tức",
+                        CategoryDescription = "Tin tức chung về FPT University",
+                    },
+                    new Category
+                    {
+                        CategoryName = "Sự kiện",
+                        CategoryDescription = "Các sự kiện diễn ra tại FPT University",
+                    },
+                    new Category
+                    {
+                        CategoryName = "Đời sống sinh viên",
+                        CategoryDescription = "Đời sống và hoạt động của sinh viên",
+                    },
+                    new Category
+                    {
+                        CategoryName = "Học thuật",
+                        CategoryDescription = "Thông tin về học thuật và nghiên cứu",
+                    },
                 };
 
                 foreach (var category in categories)
@@ -134,7 +151,7 @@ namespace Services.Auth
                     new Tag { TagName = "Tuyển sinh", Note = "Thông tin tuyển sinh" },
                     new Tag { TagName = "Công nghệ", Note = "Tin tức về công nghệ" },
                     new Tag { TagName = "Hoạt động", Note = "Các hoạt động ngoại khóa" },
-                    new Tag { TagName = "Học bổng", Note = "Thông tin học bổng" }
+                    new Tag { TagName = "Học bổng", Note = "Thông tin học bổng" },
                 };
 
                 foreach (var tag in tags)
@@ -173,21 +190,23 @@ namespace Services.Auth
                     new NewsArticle
                     {
                         NewsTitle = "FPT University thông báo tuyển sinh 2025",
-                        NewsContent = "FPT University thông báo tuyển sinh năm học 2025 với nhiều chương trình đào tạo mới...",
+                        NewsContent =
+                            "FPT University thông báo tuyển sinh năm học 2025 với nhiều chương trình đào tạo mới...",
                         Headline = "Thông tin tuyển sinh năm 2025",
                         CategoryId = categories.First(c => c.CategoryName == "Tin tức").CategoryId,
                         NewsStatus = NewsStatus.Active,
-                        CreatedDate = DateTime.UtcNow
+                        CreatedDate = DateTime.UtcNow,
                     },
                     new NewsArticle
                     {
                         NewsTitle = "Tuần lễ công nghệ FPT TechWeek 2025",
-                        NewsContent = "FPT University tổ chức tuần lễ công nghệ với nhiều hoạt động thú vị...",
+                        NewsContent =
+                            "FPT University tổ chức tuần lễ công nghệ với nhiều hoạt động thú vị...",
                         Headline = "Sự kiện công nghệ lớn nhất năm",
                         CategoryId = categories.First(c => c.CategoryName == "Sự kiện").CategoryId,
                         NewsStatus = NewsStatus.Active,
-                        CreatedDate = DateTime.UtcNow
-                    }
+                        CreatedDate = DateTime.UtcNow,
+                    },
                 };
 
                 foreach (var article in articles)
@@ -219,29 +238,39 @@ namespace Services.Auth
 
                 if (!articles.Any() || !tags.Any())
                 {
-                    _logger.LogWarning("No articles or tags found. Please seed articles and tags first");
+                    _logger.LogWarning(
+                        "No articles or tags found. Please seed articles and tags first"
+                    );
                     return;
                 }
 
                 var articleTags = new List<NewsArticleTag>();
-                
+
                 // Gán tag cho bài viết tuyển sinh
                 var recruitmentArticle = articles.First(a => a.NewsTitle.Contains("tuyển sinh"));
-                var recruitmentTags = tags.Where(t => new[] { "FPT", "Tuyển sinh" }.Contains(t.TagName));
-                articleTags.AddRange(recruitmentTags.Select(tag => new NewsArticleTag
-                {
-                    NewsArticleId = recruitmentArticle.NewsArticleId,
-                    TagId = tag.TagId
-                }));
+                var recruitmentTags = tags.Where(t =>
+                    new[] { "FPT", "Tuyển sinh" }.Contains(t.TagName)
+                );
+                articleTags.AddRange(
+                    recruitmentTags.Select(tag => new NewsArticleTag
+                    {
+                        NewsArticleId = recruitmentArticle.NewsArticleId,
+                        TagId = tag.TagId,
+                    })
+                );
 
                 // Gán tag cho bài viết về sự kiện công nghệ
                 var techArticle = articles.First(a => a.NewsTitle.Contains("TechWeek"));
-                var techTags = tags.Where(t => new[] { "FPT", "Công nghệ", "Hoạt động" }.Contains(t.TagName));
-                articleTags.AddRange(techTags.Select(tag => new NewsArticleTag
-                {
-                    NewsArticleId = techArticle.NewsArticleId,
-                    TagId = tag.TagId
-                }));
+                var techTags = tags.Where(t =>
+                    new[] { "FPT", "Công nghệ", "Hoạt động" }.Contains(t.TagName)
+                );
+                articleTags.AddRange(
+                    techTags.Select(tag => new NewsArticleTag
+                    {
+                        NewsArticleId = techArticle.NewsArticleId,
+                        TagId = tag.TagId,
+                    })
+                );
 
                 foreach (var articleTag in articleTags)
                 {

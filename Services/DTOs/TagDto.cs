@@ -1,7 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
+namespace Services.DTOs
 {
+    public class TagDto
+    {
+        public int TagId { get; set; }
+        public string TagName { get; set; } = string.Empty;
+        public string? Note { get; set; }
+        public int ArticleCount { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+    }
+
     public class CreateTagDto
     {
         [Required(ErrorMessage = "Tên tag là bắt buộc")]
@@ -24,18 +34,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
     public class CreateBulkTagsDto
     {
         [Required(ErrorMessage = "Danh sách tên tag là bắt buộc")]
-        [MinLength(1, ErrorMessage = "Phải có ít nhất 1 tag")]
         public List<string> TagNames { get; set; } = new List<string>();
 
         [StringLength(200, ErrorMessage = "Ghi chú không được vượt quá 200 ký tự")]
         public string? Note { get; set; }
-    }
-
-    public class TagStatisticsDto
-    {
-        public int TagId { get; set; }
-        public string TagName { get; set; } = string.Empty;
-        public int ArticleCount { get; set; }
     }
 
     public class PopularTagDto
@@ -43,5 +45,13 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
         public int TagId { get; set; }
         public string TagName { get; set; } = string.Empty;
         public int UsageCount { get; set; }
+    }
+
+    public class BulkCreateResultDto
+    {
+        public List<TagDto> CreatedTags { get; set; } = new List<TagDto>();
+        public List<string> DuplicateTagNames { get; set; } = new List<string>();
+        public int CreatedCount { get; set; }
+        public int DuplicateCount { get; set; }
     }
 }
