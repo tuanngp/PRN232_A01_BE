@@ -64,16 +64,22 @@ namespace Services.Auth
                 // Lưu refresh token vào database
                 await _unitOfWork.SaveChangesAsync();
 
-                var durationInMinutes = Convert.ToInt32(
+                var accessDurationInMinutes = Convert.ToInt32(
                     _configuration.GetSection("Jwt")["DurationInMinutes"] ?? "60"
                 );
-                var expiresAt = DateTime.UtcNow.AddMinutes(durationInMinutes);
+
+                var refreshDurationInDays = Convert.ToInt32(
+                    _configuration.GetSection("Jwt")["RefreshTokenDurationInDays"] ?? "7"
+                );
+                var accessTokenExpires = DateTime.UtcNow.AddMinutes(accessDurationInMinutes);
+                var refreshTokenExpires = DateTime.UtcNow.AddDays(refreshDurationInDays);
 
                 return new LoginResponse
                 {
-                    Token = token,
+                    AccessToken = token,
                     RefreshToken = refreshToken.Token,
-                    ExpiresAt = expiresAt,
+                    AccessTokenExpires = accessTokenExpires,
+                    RefreshTokenExpires = refreshTokenExpires,
                     User = new UserInfo
                     {
                         AccountId = user.AccountId,
@@ -145,16 +151,22 @@ namespace Services.Auth
                 // Save changes
                 await _unitOfWork.SaveChangesAsync();
 
-                var durationInMinutes = Convert.ToInt32(
+                var accessDurationInMinutes = Convert.ToInt32(
                     _configuration.GetSection("Jwt")["DurationInMinutes"] ?? "60"
                 );
-                var expiresAt = DateTime.UtcNow.AddMinutes(durationInMinutes);
+
+                var refreshDurationInDays = Convert.ToInt32(
+                    _configuration.GetSection("Jwt")["RefreshTokenDurationInDays"] ?? "7"
+                );
+                var accessTokenExpires = DateTime.UtcNow.AddMinutes(accessDurationInMinutes);
+                var refreshTokenExpires = DateTime.UtcNow.AddDays(refreshDurationInDays);
 
                 return new LoginResponse
                 {
-                    Token = newAccessToken,
+                    AccessToken = newAccessToken,
                     RefreshToken = newRefreshToken.Token,
-                    ExpiresAt = expiresAt,
+                    AccessTokenExpires = accessTokenExpires,
+                    RefreshTokenExpires = refreshTokenExpires,
                     User = new UserInfo
                     {
                         AccountId = accountId,

@@ -2,10 +2,11 @@ namespace Services.Models.Auth
 {
     public class LoginResponse
     {
-        public string Token { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
-        public DateTime ExpiresAt { get; set; }
         public UserInfo User { get; set; } = new();
+        public DateTime AccessTokenExpires { get; set; }
+        public DateTime RefreshTokenExpires { get; set; }
     }
 
     public class UserInfo
@@ -15,4 +16,4 @@ namespace Services.Models.Auth
         public string AccountEmail { get; set; } = string.Empty;
         public string AccountRole { get; set; } = string.Empty;
     }
-} 
+}

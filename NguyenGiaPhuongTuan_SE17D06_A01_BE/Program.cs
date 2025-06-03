@@ -120,6 +120,42 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                         // ClockSkew = TimeSpan.Zero // Mặc định là 5 phút, cho phép chênh lệch thời gian giữa server và client.
                         // Đặt Zero nếu muốn kiểm tra thời gian chính xác.
                     };
+
+                    // Cấu hình để đọc token từ cookie
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            // Ưu tiên lấy token từ Authorization header trước
+                            var token = context.Request.Headers["Authorization"]
+                                .FirstOrDefault()?.Split(" ").LastOrDefault();
+
+                            // Nếu không có trong header, thử lấy từ cookie
+                            if (string.IsNullOrEmpty(token))
+                            {
+                                token = context.Request.Cookies["accessToken"];
+                            }
+
+                            if (!string.IsNullOrEmpty(token))
+                            {
+                                context.Token = token;
+                            }
+
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            if (context.Exception != null)
+                            {
+                                Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnTokenValidated = context =>
+                        {
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
 
             builder.Services.AddAuthorization(options =>
