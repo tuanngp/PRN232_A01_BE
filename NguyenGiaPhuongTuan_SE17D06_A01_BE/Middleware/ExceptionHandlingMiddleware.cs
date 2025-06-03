@@ -44,7 +44,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
             // Determine response based on exception type
             var response = exception switch
             {
-                UnauthorizedAccessException => ApiResponse<object>.UnauthorizedResponse(exception.Message),
+                UnauthorizedAccessException => ApiResponse<object>.UnauthorizedResponse("Bạn chưa đăng nhập vào hệ thống"),
                 ArgumentNullException argNullEx => ApiResponse<object>.ValidationErrorResponse(
                     new { Field = argNullEx.ParamName, Message = argNullEx.Message }, 
                     "Tham số không hợp lệ"),

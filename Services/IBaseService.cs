@@ -1,12 +1,12 @@
 ﻿namespace Services
 {
-    public interface IBaseService<TEntity, ID>
+    public interface IBaseService<TEntity>
         where TEntity : class
     {
-        Task<TEntity?> GetByIdAsync(ID id);
+        Task<TEntity?> GetByIdAsync(object id);
         Task<IEnumerable<TEntity>> GetAllAsync();
         Task<TEntity> AddAsync(TEntity entity);
         Task<TEntity> UpdateAsync(TEntity entity);
-        Task<bool> DeleteAsync(ID id);
+        Task<bool> DeleteAsync(object id);
     }
 }

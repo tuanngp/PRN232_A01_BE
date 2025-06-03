@@ -1,5 +1,4 @@
 ﻿using BusinessObject;
-using BusinessObject.Common;
 using Microsoft.Extensions.Logging;
 using Repositories;
 using Repositories.Interface;
@@ -15,7 +14,8 @@ namespace Services.Impl
         public TagService(
             ITagRepository tagRepository,
             ILogger<TagService> logger,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+        )
         {
             _tagRepository = tagRepository;
             _logger = logger;
@@ -49,7 +49,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(object id)
         {
             try
             {
@@ -58,7 +58,9 @@ namespace Services.Impl
                     return false;
 
                 if (tag.NewsArticleTags.Any(nat => !nat.NewsArticle.IsDeleted))
-                    throw new InvalidOperationException("Cannot delete tag that is being used by active news articles");
+                    throw new InvalidOperationException(
+                        "Cannot delete tag that is being used by active news articles"
+                    );
 
                 tag.IsDeleted = true;
                 tag.DeletedAt = DateTime.UtcNow;
@@ -89,7 +91,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<Tag?> GetByIdAsync(int id)
+        public async Task<Tag?> GetByIdAsync(object id)
         {
             try
             {
@@ -110,7 +112,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting tags by name {Name}: {Message}", name, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting tags by name {Name}: {Message}",
+                    name,
+                    ex.Message
+                );
                 throw;
             }
         }

@@ -169,6 +169,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 {
                     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.WriteIndented = true;
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
                 })
                 .AddOData(opt =>
                     opt.Select()
@@ -191,6 +192,18 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
             }
 
             app.UseHttpsRedirection();
+
+            // Cấu hình để xử lý lỗi authentication
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                if (context.Response.StatusCode == 401)
+                {
+                    context.Response.Clear();
+                    throw new UnauthorizedAccessException("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+                }
+            });
 
             // Đăng ký OData Response Wrapper (trước authentication)
             app.UseODataResponseWrapper();

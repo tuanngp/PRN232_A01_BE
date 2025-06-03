@@ -2,5 +2,5 @@
 
 namespace Services
 {
-    public interface ISystemAccountService : IBaseService<SystemAccount, int> { }
+    public interface ISystemAccountService : IBaseService<SystemAccount> { }
 }

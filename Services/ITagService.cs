@@ -2,5 +2,5 @@
 
 namespace Services
 {
-    public interface ITagService : IBaseService<Tag, int> { }
+    public interface ITagService : IBaseService<Tag> { }
 }

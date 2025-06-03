@@ -1,5 +1,4 @@
 ﻿using BusinessObject;
-using BusinessObject.Common;
 using BusinessObject.Enums;
 using Microsoft.Extensions.Logging;
 using Repositories;
@@ -16,7 +15,8 @@ namespace Services.Impl
         public NewsArticleService(
             INewsArticleRepository newsArticleRepository,
             ILogger<NewsArticleService> logger,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+        )
         {
             _newsArticleRepository = newsArticleRepository;
             _logger = logger;
@@ -38,7 +38,10 @@ namespace Services.Impl
                 await _newsArticleRepository.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Created new article with ID: {NewsArticleId}", entity.NewsArticleId);
+                _logger.LogInformation(
+                    "Created new article with ID: {NewsArticleId}",
+                    entity.NewsArticleId
+                );
                 return entity;
             }
             catch (Exception ex)
@@ -48,7 +51,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(object id)
         {
             try
             {
@@ -85,7 +88,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<NewsArticle?> GetByIdAsync(int id)
+        public async Task<NewsArticle?> GetByIdAsync(object id)
         {
             try
             {
@@ -93,7 +96,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news article by ID {Id}: {Message}", id, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news article by ID {Id}: {Message}",
+                    id,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -106,7 +114,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news articles by status {Status}: {Message}", status, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news articles by status {Status}: {Message}",
+                    status,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -119,7 +132,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news articles by category {CategoryId}: {Message}", categoryId, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news articles by category {CategoryId}: {Message}",
+                    categoryId,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -131,9 +149,13 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingArticle = await _newsArticleRepository.GetByIdAsync(entity.NewsArticleId);
+                var existingArticle = await _newsArticleRepository.GetByIdAsync(
+                    entity.NewsArticleId
+                );
                 if (existingArticle == null)
-                    throw new InvalidOperationException($"News article with ID {entity.NewsArticleId} not found");
+                    throw new InvalidOperationException(
+                        $"News article with ID {entity.NewsArticleId} not found"
+                    );
 
                 ValidateNewsArticle(entity);
 
@@ -142,7 +164,10 @@ namespace Services.Impl
                 _newsArticleRepository.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Updated news article with ID: {NewsArticleId}", entity.NewsArticleId);
+                _logger.LogInformation(
+                    "Updated news article with ID: {NewsArticleId}",
+                    entity.NewsArticleId
+                );
                 return entity;
             }
             catch (Exception ex)

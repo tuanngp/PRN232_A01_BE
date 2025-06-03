@@ -32,7 +32,7 @@ namespace Services.Auth
             _refreshTokenRepository = refreshTokenRepository;
         }
 
-        public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+        public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
             try
             {
@@ -43,12 +43,12 @@ namespace Services.Auth
 
                 if (user == null || !user.IsActive)
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Email không tồn tại hoặc tài khoản đã bị vô hiệu hóa");
                 }
 
                 if (!PasswordUtil.VerifyPassword(request.Password, user.AccountPassword))
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Mật khẩu không chính xác");
                 }
 
                 // Generate JWT token
@@ -95,7 +95,7 @@ namespace Services.Auth
             }
         }
 
-        public async Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace Services.Auth
                 var principal = GetPrincipalFromExpiredToken(request.AccessToken);
                 if (principal == null)
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Access token không hợp lệ");
                 }
 
                 // Get user info from claims
@@ -113,7 +113,7 @@ namespace Services.Auth
                     || !int.TryParse(accountIdClaim, out var accountId)
                 )
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Token không chứa thông tin người dùng hợp lệ");
                 }
 
                 var email = principal.FindFirst(ClaimTypes.Email)?.Value;
@@ -121,20 +121,24 @@ namespace Services.Auth
 
                 if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Token thiếu thông tin email hoặc role");
                 }
 
                 // Check if refresh token exists and is valid
                 var refreshToken = await _refreshTokenRepository.GetByTokenAsync(
                     request.RefreshToken
                 );
-                if (
-                    refreshToken == null
-                    || !refreshToken.IsActive
-                    || refreshToken.AccountId != accountId
-                )
+                if (refreshToken == null)
                 {
-                    return null;
+                    throw new UnauthorizedAccessException("Refresh token không tồn tại");
+                }
+                if (!refreshToken.IsActive)
+                {
+                    throw new UnauthorizedAccessException("Refresh token đã bị vô hiệu hóa");
+                }
+                if (refreshToken.AccountId != accountId)
+                {
+                    throw new UnauthorizedAccessException("Refresh token không thuộc về người dùng này");
                 }
 
                 // Mark current refresh token as used
@@ -191,13 +195,13 @@ namespace Services.Auth
                 );
                 if (refreshToken == null)
                 {
-                    return false;
+                    throw new UnauthorizedAccessException("Refresh token không tồn tại");
                 }
 
                 // If accountId is provided, only allow revocation if the token belongs to the user
                 if (accountId.HasValue && refreshToken.AccountId != accountId.Value)
                 {
-                    return false;
+                    throw new UnauthorizedAccessException("Không có quyền thu hồi refresh token này");
                 }
 
                 // Revoke token
@@ -210,9 +214,13 @@ namespace Services.Auth
 
                 return true;
             }
-            catch
+            catch (UnauthorizedAccessException)
             {
-                return false;
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new UnauthorizedAccessException($"Lỗi khi thu hồi token: {ex.Message}");
             }
         }
 
@@ -301,6 +309,11 @@ namespace Services.Auth
 
         public async Task<bool> ValidateTokenAsync(string token)
         {
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new UnauthorizedAccessException("Token không được để trống");
+            }
+
             try
             {
                 var jwtSettings = _configuration.GetSection("Jwt");
@@ -324,11 +337,25 @@ namespace Services.Auth
                     validationParameters,
                     out var validatedToken
                 );
-                return validatedToken != null;
+
+                if (validatedToken == null)
+                {
+                    throw new UnauthorizedAccessException("Token không hợp lệ");
+                }
+
+                return true;
             }
-            catch
+            catch (SecurityTokenExpiredException)
             {
-                return false;
+                throw new UnauthorizedAccessException("Token đã hết hạn");
+            }
+            catch (SecurityTokenInvalidSignatureException)
+            {
+                throw new UnauthorizedAccessException("Chữ ký token không hợp lệ");
+            }
+            catch (Exception ex)
+            {
+                throw new UnauthorizedAccessException($"Lỗi xác thực token: {ex.Message}");
             }
         }
 

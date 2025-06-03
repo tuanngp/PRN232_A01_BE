@@ -18,7 +18,8 @@ namespace Services.Impl
             INewsArticleRepository newsArticleRepository,
             ITagRepository tagRepository,
             ILogger<NewsArticleTagService> logger,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork
+        )
         {
             _newsArticleTagRepository = newsArticleTagRepository;
             _newsArticleRepository = newsArticleRepository;
@@ -39,18 +40,25 @@ namespace Services.Impl
                 await _newsArticleTagRepository.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Created new news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
-                    entity.NewsArticleId, entity.TagId);
+                _logger.LogInformation(
+                    "Created new news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
+                    entity.NewsArticleId,
+                    entity.TagId
+                );
                 return entity;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating news article tag mapping: {Message}", ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error creating news article tag mapping: {Message}",
+                    ex.Message
+                );
                 throw;
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(object id)
         {
             try
             {
@@ -61,13 +69,20 @@ namespace Services.Impl
                 _newsArticleTagRepository.Delete(mapping);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Deleted news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
-                    mapping.NewsArticleId, mapping.TagId);
+                _logger.LogInformation(
+                    "Deleted news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
+                    mapping.NewsArticleId,
+                    mapping.TagId
+                );
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting news article tag mapping: {Message}", ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error deleting news article tag mapping: {Message}",
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -80,12 +95,16 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all news article tag mappings: {Message}", ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting all news article tag mappings: {Message}",
+                    ex.Message
+                );
                 throw;
             }
         }
 
-        public async Task<NewsArticleTag?> GetByIdAsync(int id)
+        public async Task<NewsArticleTag?> GetByIdAsync(object id)
         {
             try
             {
@@ -93,7 +112,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news article tag mapping by ID {Id}: {Message}", id, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news article tag mapping by ID {Id}: {Message}",
+                    id,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -106,8 +130,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news article tag mappings by article ID {ArticleId}: {Message}",
-                    newsArticleId, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news article tag mappings by article ID {ArticleId}: {Message}",
+                    newsArticleId,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -120,8 +148,12 @@ namespace Services.Impl
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting news article tag mappings by tag ID {TagId}: {Message}",
-                    tagId, ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error getting news article tag mappings by tag ID {TagId}: {Message}",
+                    tagId,
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -133,7 +165,9 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingMapping = await _newsArticleTagRepository.GetByIdAsync(entity.NewsArticleId);
+                var existingMapping = await _newsArticleTagRepository.GetByIdAsync(
+                    entity.NewsArticleId
+                );
                 if (existingMapping == null)
                     throw new InvalidOperationException($"News article tag mapping not found");
 
@@ -142,13 +176,20 @@ namespace Services.Impl
                 _newsArticleTagRepository.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Updated news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
-                    entity.NewsArticleId, entity.TagId);
+                _logger.LogInformation(
+                    "Updated news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
+                    entity.NewsArticleId,
+                    entity.TagId
+                );
                 return entity;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating news article tag mapping: {Message}", ex.Message);
+                _logger.LogError(
+                    ex,
+                    "Error updating news article tag mapping: {Message}",
+                    ex.Message
+                );
                 throw;
             }
         }
@@ -163,7 +204,9 @@ namespace Services.Impl
 
             var newsArticle = await _newsArticleRepository.GetByIdAsync(entity.NewsArticleId);
             if (newsArticle == null)
-                throw new InvalidOperationException($"News article with ID {entity.NewsArticleId} not found");
+                throw new InvalidOperationException(
+                    $"News article with ID {entity.NewsArticleId} not found"
+                );
 
             if (newsArticle.IsDeleted)
                 throw new InvalidOperationException("Cannot tag a deleted news article");

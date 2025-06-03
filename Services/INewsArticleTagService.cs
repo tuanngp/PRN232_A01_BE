@@ -2,5 +2,5 @@
 
 namespace Services
 {
-    public interface INewsArticleTagService : IBaseService<NewsArticleTag, int> { }
+    public interface INewsArticleTagService : IBaseService<NewsArticleTag> { }
 }

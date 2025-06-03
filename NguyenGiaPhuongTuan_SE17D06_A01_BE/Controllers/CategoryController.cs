@@ -266,8 +266,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var allCategories = await _categoryService.GetAllAsync();
-                var categoryTree = BuildCategoryTree(allCategories.ToList());
+                var categoryTree = await _categoryService.GetCategoryTreeAsync();
 
                 return Success(categoryTree, "Lấy cây danh mục thành công");
             }
@@ -275,48 +274,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             {
                 return Error($"Lỗi khi lấy cây danh mục: {ex.Message}");
             }
-        }
-
-        private List<CategoryTreeDto> BuildCategoryTree(List<Category> categories)
-        {
-            var rootCategories = categories.Where(c => c.ParentCategoryId == null).ToList();
-            var tree = new List<CategoryTreeDto>();
-
-            foreach (var root in rootCategories)
-            {
-                var treeNode = new CategoryTreeDto
-                {
-                    CategoryId = root.CategoryId,
-                    CategoryName = root.CategoryName,
-                    CategoryDescription = root.CategoryDescription,
-                    IsActive = root.IsActive,
-                    Children = BuildCategoryChildren(root.CategoryId, categories),
-                };
-                tree.Add(treeNode);
-            }
-
-            return tree;
-        }
-
-        private List<CategoryTreeDto> BuildCategoryChildren(int parentId, List<Category> categories)
-        {
-            var children = categories.Where(c => c.ParentCategoryId == parentId).ToList();
-            var childTree = new List<CategoryTreeDto>();
-
-            foreach (var child in children)
-            {
-                var treeNode = new CategoryTreeDto
-                {
-                    CategoryId = child.CategoryId,
-                    CategoryName = child.CategoryName,
-                    CategoryDescription = child.CategoryDescription,
-                    IsActive = child.IsActive,
-                    Children = BuildCategoryChildren(child.CategoryId, categories),
-                };
-                childTree.Add(treeNode);
-            }
-
-            return childTree;
         }
     }
 }

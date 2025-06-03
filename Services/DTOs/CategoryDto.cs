@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
+namespace Services.DTOs
 {
     public class CreateCategoryDto
     {
@@ -47,7 +47,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.DTOs
         public int? ParentCategoryId { get; set; }
         
         public CategoryBasicInfoDto? ParentCategory { get; set; }
-        
         public List<CategoryBasicInfoDto> SubCategories { get; set; } = new List<CategoryBasicInfoDto>();
     }
 

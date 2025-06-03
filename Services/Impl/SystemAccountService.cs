@@ -58,7 +58,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(object id)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace Services.Impl
             }
         }
 
-        public async Task<SystemAccount?> GetByIdAsync(int id)
+        public async Task<SystemAccount?> GetByIdAsync(object id)
         {
             try
             {
