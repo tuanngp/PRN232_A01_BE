@@ -200,11 +200,11 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
 
             app.MapControllers();
 
-            // Seed admin data
+            // Seed all data
             using (var scope = app.Services.CreateScope())
             {
                 var seedDataService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
-                await seedDataService.SeedAdminAccountAsync();
+                await seedDataService.SeedAllDataAsync();
             }
 
             app.Run();

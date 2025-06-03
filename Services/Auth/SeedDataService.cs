@@ -2,25 +2,35 @@ using BusinessObject;
 using BusinessObject.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Services.Util;
 
 namespace Services.Auth
 {
     public class SeedDataService : ISeedDataService
     {
         private readonly ISystemAccountService _systemAccountService;
-        private readonly IAuthService _authService;
+        private readonly ICategoryService _categoryService;
+        private readonly ITagService _tagService;
+        private readonly INewsArticleService _newsArticleService;
+        private readonly INewsArticleTagService _newsArticleTagService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<SeedDataService> _logger;
 
         public SeedDataService(
             ISystemAccountService systemAccountService,
-            IAuthService authService,
+            ICategoryService categoryService,
+            ITagService tagService,
+            INewsArticleService newsArticleService,
+            INewsArticleTagService newsArticleTagService,
             IConfiguration configuration,
             ILogger<SeedDataService> logger
         )
         {
             _systemAccountService = systemAccountService;
-            _authService = authService;
+            _categoryService = categoryService;
+            _tagService = tagService;
+            _newsArticleService = newsArticleService;
+            _newsArticleTagService = newsArticleTagService;
             _configuration = configuration;
             _logger = logger;
         }
@@ -73,6 +83,186 @@ namespace Services.Auth
             {
                 _logger.LogError(ex, "Error occurred while seeding admin account");
             }
+        }
+
+        public async Task SeedCategoriesAsync()
+        {
+            try
+            {
+                var existingCategories = await _categoryService.GetAllAsync();
+                if (existingCategories.Any())
+                {
+                    _logger.LogInformation("Categories already exist");
+                    return;
+                }
+
+                var categories = new List<Category>
+                {
+                    new Category { CategoryName = "Tin tức", CategoryDescription = "Tin tức chung về FPT University" },
+                    new Category { CategoryName = "Sự kiện", CategoryDescription = "Các sự kiện diễn ra tại FPT University" },
+                    new Category { CategoryName = "Đời sống sinh viên", CategoryDescription = "Đời sống và hoạt động của sinh viên" },
+                    new Category { CategoryName = "Học thuật", CategoryDescription = "Thông tin về học thuật và nghiên cứu" }
+                };
+
+                foreach (var category in categories)
+                {
+                    await _categoryService.AddAsync(category);
+                }
+
+                _logger.LogInformation("Categories seeded successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while seeding categories");
+            }
+        }
+
+        public async Task SeedTagsAsync()
+        {
+            try
+            {
+                var existingTags = await _tagService.GetAllAsync();
+                if (existingTags.Any())
+                {
+                    _logger.LogInformation("Tags already exist");
+                    return;
+                }
+
+                var tags = new List<Tag>
+                {
+                    new Tag { TagName = "FPT", Note = "Tin liên quan đến FPT" },
+                    new Tag { TagName = "Tuyển sinh", Note = "Thông tin tuyển sinh" },
+                    new Tag { TagName = "Công nghệ", Note = "Tin tức về công nghệ" },
+                    new Tag { TagName = "Hoạt động", Note = "Các hoạt động ngoại khóa" },
+                    new Tag { TagName = "Học bổng", Note = "Thông tin học bổng" }
+                };
+
+                foreach (var tag in tags)
+                {
+                    await _tagService.AddAsync(tag);
+                }
+
+                _logger.LogInformation("Tags seeded successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while seeding tags");
+            }
+        }
+
+        public async Task SeedNewsArticlesAsync()
+        {
+            try
+            {
+                var existingArticles = await _newsArticleService.GetAllAsync();
+                if (existingArticles.Any())
+                {
+                    _logger.LogInformation("News articles already exist");
+                    return;
+                }
+
+                var categories = await _categoryService.GetAllAsync();
+                if (!categories.Any())
+                {
+                    _logger.LogWarning("No categories found. Please seed categories first");
+                    return;
+                }
+
+                var articles = new List<NewsArticle>
+                {
+                    new NewsArticle
+                    {
+                        NewsTitle = "FPT University thông báo tuyển sinh 2025",
+                        NewsContent = "FPT University thông báo tuyển sinh năm học 2025 với nhiều chương trình đào tạo mới...",
+                        Headline = "Thông tin tuyển sinh năm 2025",
+                        CategoryId = categories.First(c => c.CategoryName == "Tin tức").CategoryId,
+                        NewsStatus = NewsStatus.Active,
+                        CreatedDate = DateTime.UtcNow
+                    },
+                    new NewsArticle
+                    {
+                        NewsTitle = "Tuần lễ công nghệ FPT TechWeek 2025",
+                        NewsContent = "FPT University tổ chức tuần lễ công nghệ với nhiều hoạt động thú vị...",
+                        Headline = "Sự kiện công nghệ lớn nhất năm",
+                        CategoryId = categories.First(c => c.CategoryName == "Sự kiện").CategoryId,
+                        NewsStatus = NewsStatus.Active,
+                        CreatedDate = DateTime.UtcNow
+                    }
+                };
+
+                foreach (var article in articles)
+                {
+                    await _newsArticleService.AddAsync(article);
+                }
+
+                _logger.LogInformation("News articles seeded successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while seeding news articles");
+            }
+        }
+
+        public async Task SeedNewsArticleTagsAsync()
+        {
+            try
+            {
+                var existingArticleTags = await _newsArticleTagService.GetAllAsync();
+                if (existingArticleTags.Any())
+                {
+                    _logger.LogInformation("News article tags already exist");
+                    return;
+                }
+
+                var articles = await _newsArticleService.GetAllAsync();
+                var tags = await _tagService.GetAllAsync();
+
+                if (!articles.Any() || !tags.Any())
+                {
+                    _logger.LogWarning("No articles or tags found. Please seed articles and tags first");
+                    return;
+                }
+
+                var articleTags = new List<NewsArticleTag>();
+                
+                // Gán tag cho bài viết tuyển sinh
+                var recruitmentArticle = articles.First(a => a.NewsTitle.Contains("tuyển sinh"));
+                var recruitmentTags = tags.Where(t => new[] { "FPT", "Tuyển sinh" }.Contains(t.TagName));
+                articleTags.AddRange(recruitmentTags.Select(tag => new NewsArticleTag
+                {
+                    NewsArticleId = recruitmentArticle.NewsArticleId,
+                    TagId = tag.TagId
+                }));
+
+                // Gán tag cho bài viết về sự kiện công nghệ
+                var techArticle = articles.First(a => a.NewsTitle.Contains("TechWeek"));
+                var techTags = tags.Where(t => new[] { "FPT", "Công nghệ", "Hoạt động" }.Contains(t.TagName));
+                articleTags.AddRange(techTags.Select(tag => new NewsArticleTag
+                {
+                    NewsArticleId = techArticle.NewsArticleId,
+                    TagId = tag.TagId
+                }));
+
+                foreach (var articleTag in articleTags)
+                {
+                    await _newsArticleTagService.AddAsync(articleTag);
+                }
+
+                _logger.LogInformation("News article tags seeded successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while seeding news article tags");
+            }
+        }
+
+        public async Task SeedAllDataAsync()
+        {
+            await SeedAdminAccountAsync();
+            await SeedCategoriesAsync();
+            await SeedTagsAsync();
+            await SeedNewsArticlesAsync();
+            await SeedNewsArticleTagsAsync();
         }
     }
 }
