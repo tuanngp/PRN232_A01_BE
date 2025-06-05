@@ -1,5 +1,4 @@
 ﻿using BusinessObject;
-using BusinessObject.Enums;
 using Services.DTOs;
 
 namespace Services.Interface
@@ -16,6 +15,5 @@ namespace Services.Interface
         Task<bool> ResetPasswordAsync(int id, string newPassword);
         Task<SystemAccountDto> ToggleAccountStatusAsync(int id);
         Task<AccountStatisticsDto> GetAccountStatisticsAsync();
-        Task<bool> IsEmailInUseAsync(string email, int? excludeAccountId = null);
     }
 }

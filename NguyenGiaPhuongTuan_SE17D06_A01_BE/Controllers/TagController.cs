@@ -25,8 +25,9 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var tags = await _tagService.GetAllTagsAsync();
-                return Success(tags, "Lấy danh sách tag thành công");
+                var tags = await _tagService.GetAllAsync();
+                //return Success(tags, "Lấy danh sách tag thành công");
+                return Ok(tags);
             }
             catch (Exception ex)
             {
@@ -81,7 +82,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateTag([FromBody] CreateTagDto createDto)
         {
             try
@@ -105,7 +106,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> UpdateTag(int id, [FromBody] UpdateTagDto updateDto)
         {
             try
@@ -133,7 +134,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> DeleteTag(int id)
         {
             try
@@ -152,7 +153,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpGet("statistics")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetTagStatistics()
         {
             try
@@ -182,7 +183,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost("bulk")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateBulkTags([FromBody] CreateBulkTagsDto bulkDto)
         {
             try

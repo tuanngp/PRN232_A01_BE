@@ -2,36 +2,24 @@ using BusinessObject;
 using BusinessObject.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Repositories;
 using Services.Interface;
-using Services.Util;
 
 namespace Services.Auth
 {
     public class SeedDataService : ISeedDataService
     {
-        private readonly ISystemAccountService _systemAccountService;
-        private readonly ICategoryService _categoryService;
-        private readonly ITagService _tagService;
-        private readonly INewsArticleService _newsArticleService;
-        private readonly INewsArticleTagService _newsArticleTagService;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly ILogger<SeedDataService> _logger;
 
         public SeedDataService(
-            ISystemAccountService systemAccountService,
-            ICategoryService categoryService,
-            ITagService tagService,
-            INewsArticleService newsArticleService,
-            INewsArticleTagService newsArticleTagService,
+            IUnitOfWork unitOfWork,
             IConfiguration configuration,
             ILogger<SeedDataService> logger
         )
         {
-            _systemAccountService = systemAccountService;
-            _categoryService = categoryService;
-            _tagService = tagService;
-            _newsArticleService = newsArticleService;
-            _newsArticleTagService = newsArticleTagService;
+            _unitOfWork = unitOfWork;
             _configuration = configuration;
             _logger = logger;
         }
@@ -51,7 +39,7 @@ namespace Services.Auth
                 }
 
                 // Kiểm tra xem admin account đã tồn tại chưa
-                var existingAccounts = await _systemAccountService.GetAllAsync();
+                var existingAccounts = await _unitOfWork.SystemAccounts.GetAllAsync();
                 var existingAdmin = existingAccounts.FirstOrDefault(x =>
                     x.AccountEmail.Equals(adminEmail, StringComparison.OrdinalIgnoreCase)
                 );
@@ -74,7 +62,7 @@ namespace Services.Auth
                     ModifiedDate = DateTime.UtcNow,
                 };
 
-                await _systemAccountService.AddAsync(adminAccount);
+                await _unitOfWork.SystemAccounts.AddAsync(adminAccount);
                 _logger.LogInformation(
                     "Admin account seeded successfully with email: {Email}",
                     adminEmail
@@ -90,7 +78,7 @@ namespace Services.Auth
         {
             try
             {
-                var existingCategories = await _categoryService.GetAllAsync();
+                var existingCategories = await _unitOfWork.Categories.GetAllAsync();
                 if (existingCategories.Any())
                 {
                     _logger.LogInformation("Categories already exist");
@@ -123,7 +111,7 @@ namespace Services.Auth
 
                 foreach (var category in categories)
                 {
-                    await _categoryService.AddAsync(category);
+                    await _unitOfWork.Categories.AddAsync(category);
                 }
 
                 _logger.LogInformation("Categories seeded successfully");
@@ -138,7 +126,7 @@ namespace Services.Auth
         {
             try
             {
-                var existingTags = await _tagService.GetAllAsync();
+                var existingTags = await _unitOfWork.Tags.GetAllAsync();
                 if (existingTags.Any())
                 {
                     _logger.LogInformation("Tags already exist");
@@ -156,7 +144,7 @@ namespace Services.Auth
 
                 foreach (var tag in tags)
                 {
-                    await _tagService.AddAsync(tag);
+                    await _unitOfWork.Tags.AddAsync(tag);
                 }
 
                 _logger.LogInformation("Tags seeded successfully");
@@ -171,14 +159,14 @@ namespace Services.Auth
         {
             try
             {
-                var existingArticles = await _newsArticleService.GetAllAsync();
+                var existingArticles = await _unitOfWork.NewsArticles.GetAllAsync();
                 if (existingArticles.Any())
                 {
                     _logger.LogInformation("News articles already exist");
                     return;
                 }
 
-                var categories = await _categoryService.GetAllAsync();
+                var categories = await _unitOfWork.Categories.GetAllAsync();
                 if (!categories.Any())
                 {
                     _logger.LogWarning("No categories found. Please seed categories first");
@@ -211,7 +199,7 @@ namespace Services.Auth
 
                 foreach (var article in articles)
                 {
-                    await _newsArticleService.AddAsync(article);
+                    await _unitOfWork.NewsArticles.AddAsync(article);
                 }
 
                 _logger.LogInformation("News articles seeded successfully");
@@ -226,15 +214,15 @@ namespace Services.Auth
         {
             try
             {
-                var existingArticleTags = await _newsArticleTagService.GetAllAsync();
+                var existingArticleTags = await _unitOfWork.NewsArticles.GetAllAsync();
                 if (existingArticleTags.Any())
                 {
                     _logger.LogInformation("News article tags already exist");
                     return;
                 }
 
-                var articles = await _newsArticleService.GetAllAsync();
-                var tags = await _tagService.GetAllAsync();
+                var articles = await _unitOfWork.NewsArticles.GetAllAsync();
+                var tags = await _unitOfWork.Tags.GetAllAsync();
 
                 if (!articles.Any() || !tags.Any())
                 {
@@ -274,7 +262,7 @@ namespace Services.Auth
 
                 foreach (var articleTag in articleTags)
                 {
-                    await _newsArticleTagService.AddAsync(articleTag);
+                    await _unitOfWork.NewsArticleTags.AddAsync(articleTag);
                 }
 
                 _logger.LogInformation("News article tags seeded successfully");
@@ -292,6 +280,7 @@ namespace Services.Auth
             await SeedTagsAsync();
             await SeedNewsArticlesAsync();
             await SeedNewsArticleTagsAsync();
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

@@ -2,11 +2,12 @@ using System.Security.Claims;
 using BusinessObject.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
 
 namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 {
     [ApiController]
-    public abstract class BaseController : ControllerBase
+    public abstract class BaseController : ODataController
     {
         protected IActionResult Success<T>(
             T data,

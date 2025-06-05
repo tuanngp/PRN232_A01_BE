@@ -2,7 +2,6 @@
 using BusinessObject.Enums;
 using Microsoft.Extensions.Logging;
 using Repositories;
-using Repositories.Interface;
 using Services.DTOs;
 using Services.Interface;
 
@@ -10,20 +9,11 @@ namespace Services.Impl
 {
     public class NewsArticleService : INewsArticleService
     {
-        private readonly INewsArticleRepository _newsArticleRepository;
-        private readonly ICategoryRepository _categoryRepository;
         private readonly ILogger<NewsArticleService> _logger;
         private readonly IUnitOfWork _unitOfWork;
 
-        public NewsArticleService(
-            INewsArticleRepository newsArticleRepository,
-            ICategoryRepository categoryRepository,
-            ILogger<NewsArticleService> logger,
-            IUnitOfWork unitOfWork
-        )
+        public NewsArticleService(ILogger<NewsArticleService> logger, IUnitOfWork unitOfWork)
         {
-            _newsArticleRepository = newsArticleRepository;
-            _categoryRepository = categoryRepository;
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
@@ -40,7 +30,7 @@ namespace Services.Impl
                 entity.CreatedDate = DateTime.UtcNow;
                 entity.NewsStatus = NewsStatus.Inactive;
 
-                await _newsArticleRepository.AddAsync(entity);
+                await _unitOfWork.NewsArticles.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -63,7 +53,7 @@ namespace Services.Impl
         {
             try
             {
-                var category = await _categoryRepository.GetByIdAsync(createDto.CategoryId);
+                var category = await _unitOfWork.Categories.GetByIdAsync(createDto.CategoryId);
                 if (category == null)
                 {
                     throw new ArgumentException("Danh mục không tồn tại");
@@ -95,14 +85,14 @@ namespace Services.Impl
         {
             try
             {
-                var article = await _newsArticleRepository.GetByIdAsync(id);
+                var article = await _unitOfWork.NewsArticles.GetByIdAsync(id);
                 if (article == null)
                     return false;
 
                 article.IsDeleted = true;
                 article.DeletedAt = DateTime.UtcNow;
 
-                _newsArticleRepository.Update(article);
+                _unitOfWork.NewsArticles.Update(article);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Soft deleted article with ID: {NewsArticleId}", id);
@@ -141,7 +131,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _newsArticleRepository.GetAllAsync();
+                return await _unitOfWork.NewsArticles.GetAllAsync();
             }
             catch (Exception ex)
             {
@@ -160,7 +150,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _newsArticleRepository.GetByIdAsync(id);
+                return await _unitOfWork.NewsArticles.GetByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -184,7 +174,7 @@ namespace Services.Impl
         {
             try
             {
-                var articles = await _newsArticleRepository.GetNewsByStatusAsync(status);
+                var articles = await _unitOfWork.NewsArticles.GetNewsByStatusAsync(status);
                 return articles.Select(MapToDto);
             }
             catch (Exception ex)
@@ -203,7 +193,7 @@ namespace Services.Impl
         {
             try
             {
-                var articles = await _newsArticleRepository.GetNewsByCategoryAsync(categoryId);
+                var articles = await _unitOfWork.NewsArticles.GetNewsByCategoryAsync(categoryId);
                 return articles.Select(MapToDto);
             }
             catch (Exception ex)
@@ -225,7 +215,7 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingArticle = await _newsArticleRepository.GetByIdAsync(
+                var existingArticle = await _unitOfWork.NewsArticles.GetByIdAsync(
                     entity.NewsArticleId
                 );
                 if (existingArticle == null)
@@ -237,7 +227,7 @@ namespace Services.Impl
 
                 entity.ModifiedDate = DateTime.UtcNow;
 
-                _newsArticleRepository.Update(entity);
+                _unitOfWork.NewsArticles.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -273,7 +263,9 @@ namespace Services.Impl
 
             if (updateDto.CategoryId.HasValue)
             {
-                var category = await _categoryRepository.GetByIdAsync(updateDto.CategoryId.Value);
+                var category = await _unitOfWork.Categories.GetByIdAsync(
+                    updateDto.CategoryId.Value
+                );
                 if (category == null)
                 {
                     throw new ArgumentException("Danh mục không tồn tại");

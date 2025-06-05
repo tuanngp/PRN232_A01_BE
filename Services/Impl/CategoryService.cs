@@ -1,7 +1,6 @@
 ﻿using BusinessObject;
 using Microsoft.Extensions.Logging;
 using Repositories;
-using Repositories.Interface;
 using Services.DTOs;
 using Services.Interface;
 
@@ -9,17 +8,11 @@ namespace Services.Impl
 {
     public class CategoryService : ICategoryService
     {
-        private readonly ICategoryRepository _categoryRepository;
         private readonly ILogger<CategoryService> _logger;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CategoryService(
-            ICategoryRepository categoryRepository,
-            ILogger<CategoryService> logger,
-            IUnitOfWork unitOfWork
-        )
+        public CategoryService(ILogger<CategoryService> logger, IUnitOfWork unitOfWork)
         {
-            _categoryRepository = categoryRepository;
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
@@ -28,7 +21,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _categoryRepository.GetAllAsync();
+                return await _unitOfWork.Categories.GetAllAsync();
             }
             catch (Exception ex)
             {
@@ -41,7 +34,7 @@ namespace Services.Impl
         {
             try
             {
-                var categories = await _categoryRepository.GetAllAsync();
+                var categories = await _unitOfWork.Categories.GetAllAsync();
                 return categories.Select(c => MapToCategoryDto(c));
             }
             catch (Exception ex)
@@ -60,7 +53,7 @@ namespace Services.Impl
 
                 if (entity.ParentCategoryId.HasValue)
                 {
-                    var parentCategory = await _categoryRepository.GetByIdAsync(
+                    var parentCategory = await _unitOfWork.Categories.GetByIdAsync(
                         entity.ParentCategoryId.Value
                     );
                     if (parentCategory == null)
@@ -72,7 +65,7 @@ namespace Services.Impl
                 entity.CreatedDate = DateTime.UtcNow;
                 entity.IsActive = true;
 
-                await _categoryRepository.AddAsync(entity);
+                await _unitOfWork.Categories.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 return entity;
@@ -95,7 +88,7 @@ namespace Services.Impl
 
                 if (createDto.ParentCategoryId.HasValue)
                 {
-                    var parentCategory = await _categoryRepository.GetByIdAsync(
+                    var parentCategory = await _unitOfWork.Categories.GetByIdAsync(
                         createDto.ParentCategoryId.Value
                     );
                     if (parentCategory == null)
@@ -106,10 +99,10 @@ namespace Services.Impl
 
                 entity.CreatedDate = DateTime.UtcNow;
 
-                await _categoryRepository.AddAsync(entity);
+                await _unitOfWork.Categories.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
-                var createdCategory = await _categoryRepository.GetByIdAsync(entity.CategoryId);
+                var createdCategory = await _unitOfWork.Categories.GetByIdAsync(entity.CategoryId);
 
                 _logger.LogInformation(
                     "Created new category with ID: {CategoryId}",
@@ -128,7 +121,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _categoryRepository.GetByIdAsync(id);
+                return await _unitOfWork.Categories.GetByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -168,7 +161,7 @@ namespace Services.Impl
                 if (updateDto == null)
                     throw new ArgumentNullException(nameof(updateDto));
 
-                var existingCategory = await _categoryRepository.GetByIdAsync(id);
+                var existingCategory = await _unitOfWork.Categories.GetByIdAsync(id);
                 if (existingCategory == null)
                     throw new InvalidOperationException($"Category with ID {id} not found");
 
@@ -177,7 +170,7 @@ namespace Services.Impl
                     && updateDto.ParentCategoryId != existingCategory.ParentCategoryId
                 )
                 {
-                    var parentCategory = await _categoryRepository.GetByIdAsync(
+                    var parentCategory = await _unitOfWork.Categories.GetByIdAsync(
                         updateDto.ParentCategoryId.Value
                     );
                     if (parentCategory == null)
@@ -192,10 +185,10 @@ namespace Services.Impl
                 UpdateCategoryFromDto(existingCategory, updateDto);
                 existingCategory.ModifiedDate = DateTime.UtcNow;
 
-                _categoryRepository.Update(existingCategory);
+                _unitOfWork.Categories.Update(existingCategory);
                 await _unitOfWork.SaveChangesAsync();
 
-                var updatedCategory = await _categoryRepository.GetByIdAsync(id);
+                var updatedCategory = await _unitOfWork.Categories.GetByIdAsync(id);
                 _logger.LogInformation("Updated category with ID: {CategoryId}", id);
                 return MapToCategoryDto(updatedCategory);
             }
@@ -213,7 +206,7 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingCategory = await _categoryRepository.GetByIdAsync(entity.CategoryId);
+                var existingCategory = await _unitOfWork.Categories.GetByIdAsync(entity.CategoryId);
                 if (existingCategory == null)
                     throw new InvalidOperationException(
                         $"Category with ID {entity.CategoryId} not found"
@@ -221,7 +214,7 @@ namespace Services.Impl
 
                 if (entity.ParentCategoryId.HasValue)
                 {
-                    var parentCategory = await _categoryRepository.GetByIdAsync(
+                    var parentCategory = await _unitOfWork.Categories.GetByIdAsync(
                         entity.ParentCategoryId.Value
                     );
                     if (parentCategory == null)
@@ -235,7 +228,7 @@ namespace Services.Impl
 
                 entity.ModifiedDate = DateTime.UtcNow;
 
-                _categoryRepository.Update(entity);
+                _unitOfWork.Categories.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 return entity;
@@ -251,7 +244,7 @@ namespace Services.Impl
         {
             try
             {
-                var allCategories = await _categoryRepository.GetAllAsync();
+                var allCategories = await _unitOfWork.Categories.GetAllAsync();
                 var rootCategories = allCategories.Where(c =>
                     !c.ParentCategoryId.HasValue && !c.IsDeleted
                 );
@@ -269,7 +262,7 @@ namespace Services.Impl
         {
             try
             {
-                var allCategories = await _categoryRepository.GetAllAsync();
+                var allCategories = await _unitOfWork.Categories.GetAllAsync();
                 var subCategories = allCategories
                     .Where(c => c.ParentCategoryId == parentId && !c.IsDeleted)
                     .ToList();
@@ -292,7 +285,7 @@ namespace Services.Impl
         {
             try
             {
-                var allCategories = await _categoryRepository.GetAllAsync();
+                var allCategories = await _unitOfWork.Categories.GetAllAsync();
                 var rootCategories = allCategories
                     .Where(c => !c.ParentCategoryId.HasValue && !c.IsDeleted)
                     .ToList();
@@ -331,7 +324,7 @@ namespace Services.Impl
         {
             try
             {
-                var category = await _categoryRepository.GetByIdAsync(id);
+                var category = await _unitOfWork.Categories.GetByIdAsync(id);
                 if (category == null)
                     return false;
 
@@ -349,7 +342,7 @@ namespace Services.Impl
                 category.DeletedAt = DateTime.UtcNow;
                 category.IsActive = false;
 
-                _categoryRepository.Update(category);
+                _unitOfWork.Categories.Update(category);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Soft deleted category with ID: {CategoryId}", id);

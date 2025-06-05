@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using BusinessObject.Common;
 
 namespace BusinessObject
@@ -15,6 +16,7 @@ namespace BusinessObject
         [MaxLength(200)]
         public string? Note { get; set; }
 
+        [JsonIgnore]
         public virtual ICollection<NewsArticleTag> NewsArticleTags { get; set; } =
             new List<NewsArticleTag>();
     }

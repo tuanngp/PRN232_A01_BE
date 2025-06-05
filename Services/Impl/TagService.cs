@@ -1,7 +1,6 @@
 ﻿using BusinessObject;
 using Microsoft.Extensions.Logging;
 using Repositories;
-using Repositories.Interface;
 using Services.DTOs;
 using Services.Interface;
 
@@ -9,17 +8,11 @@ namespace Services.Impl
 {
     public class TagService : ITagService
     {
-        private readonly ITagRepository _tagRepository;
         private readonly ILogger<TagService> _logger;
         private readonly IUnitOfWork _unitOfWork;
 
-        public TagService(
-            ITagRepository tagRepository,
-            ILogger<TagService> logger,
-            IUnitOfWork unitOfWork
-        )
+        public TagService(ILogger<TagService> logger, IUnitOfWork unitOfWork)
         {
-            _tagRepository = tagRepository;
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
@@ -39,7 +32,7 @@ namespace Services.Impl
                     );
 
                 entity.CreatedDate = DateTime.UtcNow;
-                await _tagRepository.AddAsync(entity);
+                await _unitOfWork.Tags.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Created new tag with ID: {TagId}", entity.TagId);
@@ -56,14 +49,14 @@ namespace Services.Impl
         {
             try
             {
-                var tag = await _tagRepository.GetByIdAsync(id);
+                var tag = await _unitOfWork.Tags.GetByIdAsync(id);
                 if (tag == null)
                     return false;
 
                 tag.IsDeleted = true;
                 tag.DeletedAt = DateTime.UtcNow;
 
-                _tagRepository.Update(tag);
+                _unitOfWork.Tags.Update(tag);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Soft deleted tag with ID: {TagId}", id);
@@ -80,7 +73,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _tagRepository.GetAllAsync();
+                return await _unitOfWork.Tags.GetAllAsync();
             }
             catch (Exception ex)
             {
@@ -99,7 +92,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _tagRepository.GetByIdAsync(id);
+                return await _unitOfWork.Tags.GetByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -121,7 +114,7 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingTag = await _tagRepository.GetByIdAsync(entity.TagId);
+                var existingTag = await _unitOfWork.Tags.GetByIdAsync(entity.TagId);
                 if (existingTag == null)
                     throw new InvalidOperationException($"Tag với ID {entity.TagId} không tồn tại");
 
@@ -143,7 +136,7 @@ namespace Services.Impl
 
                 entity.ModifiedDate = DateTime.UtcNow;
 
-                _tagRepository.Update(entity);
+                _unitOfWork.Tags.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Updated tag with ID: {TagId}", entity.TagId);

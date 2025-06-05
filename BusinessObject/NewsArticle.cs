@@ -12,23 +12,23 @@ namespace BusinessObject
 
         [Required]
         [MaxLength(200)]
-        public string NewsTitle { get; set; }
+        public string NewsTitle { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Headline { get; set; }
 
         [Required]
-        public string NewsContent { get; set; }
+        public string NewsContent { get; set; } = string.Empty;
 
         [MaxLength(200)]
         public string? NewsSource { get; set; }
 
-        public DateTime CreatedDate { get; set; }
+        //public string? ImageUrl { get; set; }
 
         public NewsStatus NewsStatus { get; set; }
 
         public int CategoryId { get; set; }
-        public int CreatedById { get; set; }
+        public int? CreatedById { get; set; }
         public int? UpdatedById { get; set; }
 
         [ForeignKey("CategoryId")]

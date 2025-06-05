@@ -9,7 +9,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ODataResponseMiddleware> _logger;
 
-        public ODataResponseMiddleware(RequestDelegate next, ILogger<ODataResponseMiddleware> logger)
+        public ODataResponseMiddleware(
+            RequestDelegate next,
+            ILogger<ODataResponseMiddleware> logger
+        )
         {
             _next = next;
             _logger = logger;
@@ -30,14 +33,14 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
 
         private static bool IsODataRequest(HttpContext context)
         {
-            return context.Request.Path.StartsWithSegments("/odata") ||
-                   context.Request.Query.ContainsKey("$select") ||
-                   context.Request.Query.ContainsKey("$filter") ||
-                   context.Request.Query.ContainsKey("$expand") ||
-                   context.Request.Query.ContainsKey("$orderby") ||
-                   context.Request.Query.ContainsKey("$top") ||
-                   context.Request.Query.ContainsKey("$skip") ||
-                   context.Request.Query.ContainsKey("$count");
+            return context.Request.Path.StartsWithSegments("/odata")
+                || context.Request.Query.ContainsKey("$select")
+                || context.Request.Query.ContainsKey("$filter")
+                || context.Request.Query.ContainsKey("$expand")
+                || context.Request.Query.ContainsKey("$orderby")
+                || context.Request.Query.ContainsKey("$top")
+                || context.Request.Query.ContainsKey("$skip")
+                || context.Request.Query.ContainsKey("$count");
         }
 
         private async Task HandleODataRequest(HttpContext context)
@@ -70,7 +73,11 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
             }
         }
 
-        private async Task WrapODataResponse(HttpContext context, MemoryStream responseBody, Stream originalBodyStream)
+        private async Task WrapODataResponse(
+            HttpContext context,
+            MemoryStream responseBody,
+            Stream originalBodyStream
+        )
         {
             try
             {
@@ -88,15 +95,16 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
 
                 // Parse OData response
                 var odataResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
-                
+
                 // Extract OData metadata
                 var metadata = ExtractODataMetadata(odataResponse);
 
                 // Create wrapped response
                 var wrappedResponse = ApiResponse<object>.SuccessResponse(
-                    odataResponse, 
-                    "Thành công", 
-                    metadata);
+                    odataResponse,
+                    "Thành công",
+                    metadata
+                );
 
                 wrappedResponse.RequestId = context.TraceIdentifier;
 
@@ -106,7 +114,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error wrapping OData response");
-                
+
                 // Fallback: return original response
                 responseBody.Seek(0, SeekOrigin.Begin);
                 await responseBody.CopyToAsync(originalBodyStream);
@@ -147,7 +155,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
             var jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
+                WriteIndented = true,
             };
 
             var json = JsonSerializer.Serialize(response, jsonOptions);
@@ -163,4 +171,4 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Middleware
             return builder.UseMiddleware<ODataResponseMiddleware>();
         }
     }
-} 
+}

@@ -1,4 +1,3 @@
-using BusinessObject.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
@@ -26,8 +25,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var articles = await _newsArticleService.GetAllNewsArticlesAsync();
-                return Success(articles, "Lấy danh sách bài viết thành công");
+                //var articles = await _newsArticleService.GetAllNewsArticlesAsync();
+                //return Success(articles, "Lấy danh sách bài viết thành công");
+                var articles = await _newsArticleService.GetAllAsync();
+                return Ok(articles);
             }
             catch (Exception ex)
             {
@@ -56,7 +57,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateNewsArticle(
             [FromBody] CreateNewsArticleDto createDto
         )
@@ -91,7 +92,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> UpdateNewsArticle(
             int id,
             [FromBody] UpdateNewsArticleDto updateDto
@@ -114,7 +115,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     id,
                     updateDto,
                     currentUserId.Value,
-                    HasRole("Admin")
+                    HasRole("Staff")
                 );
                 return Success(updatedArticle, "Cập nhật bài viết thành công");
             }
@@ -137,7 +138,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> DeleteNewsArticle(int id)
         {
             try
@@ -172,7 +173,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> ChangeNewsStatus(
             int id,
             [FromBody] ChangeNewsStatusDto statusDto

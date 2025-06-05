@@ -2,7 +2,6 @@
 using BusinessObject.Enums;
 using Microsoft.Extensions.Logging;
 using Repositories;
-using Repositories.Interface;
 using Services.DTOs;
 using Services.Interface;
 using Services.Util;
@@ -11,17 +10,11 @@ namespace Services.Impl
 {
     public class SystemAccountService : ISystemAccountService
     {
-        private readonly ISystemAccountRepository _accountRepository;
         private readonly ILogger<SystemAccountService> _logger;
         private readonly IUnitOfWork _unitOfWork;
 
-        public SystemAccountService(
-            ISystemAccountRepository accountRepository,
-            ILogger<SystemAccountService> logger,
-            IUnitOfWork unitOfWork
-        )
+        public SystemAccountService(ILogger<SystemAccountService> logger, IUnitOfWork unitOfWork)
         {
-            _accountRepository = accountRepository;
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
@@ -42,7 +35,7 @@ namespace Services.Impl
                 entity.IsActive = true;
                 entity.CreatedDate = DateTime.UtcNow;
 
-                await _accountRepository.AddAsync(entity);
+                await _unitOfWork.SystemAccounts.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -62,14 +55,14 @@ namespace Services.Impl
         {
             try
             {
-                var account = await _accountRepository.GetByIdAsync(id);
+                var account = await _unitOfWork.SystemAccounts.GetByIdAsync(id);
                 if (account == null)
                     return false;
 
                 account.IsActive = false;
                 account.ModifiedDate = DateTime.UtcNow;
 
-                _accountRepository.Update(account);
+                _unitOfWork.SystemAccounts.Update(account);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Soft deleted account with ID: {AccountId}", id);
@@ -86,7 +79,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _accountRepository.GetAllAsync();
+                return await _unitOfWork.SystemAccounts.GetAllAsync();
             }
             catch (Exception ex)
             {
@@ -105,7 +98,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _accountRepository.GetByIdAsync(id);
+                return await _unitOfWork.SystemAccounts.GetByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -123,7 +116,7 @@ namespace Services.Impl
         public async Task<SystemAccountDto?> GetAccountByEmailAsync(string email)
         {
             ValidateEmail(email);
-            var account = await _accountRepository.GetByEmailAsync(email);
+            var account = await _unitOfWork.SystemAccounts.GetByEmailAsync(email);
             return account != null ? MapToDto(account) : null;
         }
 
@@ -134,7 +127,9 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingAccount = await _accountRepository.GetByIdAsync(entity.AccountId);
+                var existingAccount = await _unitOfWork.SystemAccounts.GetByIdAsync(
+                    entity.AccountId
+                );
                 if (existingAccount == null)
                     throw new InvalidOperationException(
                         $"Không tìm thấy tài khoản với ID {entity.AccountId}"
@@ -149,7 +144,7 @@ namespace Services.Impl
 
                 entity.ModifiedDate = DateTime.UtcNow;
 
-                _accountRepository.Update(entity);
+                _unitOfWork.SystemAccounts.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Updated account with ID: {AccountId}", entity.AccountId);

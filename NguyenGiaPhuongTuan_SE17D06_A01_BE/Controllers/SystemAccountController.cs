@@ -24,8 +24,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
+                //var accounts = await _systemAccountService.GetAllAccountsAsync();
+                //return Success(accounts, "Lấy danh sách tài khoản thành công");
                 var accounts = await _systemAccountService.GetAllAccountsAsync();
-                return Success(accounts, "Lấy danh sách tài khoản thành công");
+                return Ok(accounts);
             }
             catch (Exception ex)
             {
@@ -79,6 +81,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateSystemAccount(
             [FromBody] CreateSystemAccountDto createDto
         )

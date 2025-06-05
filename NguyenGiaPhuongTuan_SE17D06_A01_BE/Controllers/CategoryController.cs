@@ -25,8 +25,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         {
             try
             {
-                var categories = await _categoryService.GetAllCategoriesAsync();
-                return Success(categories, "Lấy danh sách danh mục thành công");
+                //var categories = await _categoryService.GetAllCategoriesAsync();
+                //return Success(categories, "Lấy danh sách danh mục thành công");
+                var categories = await _categoryService.GetAllAsync();
+                return Ok(categories);
             }
             catch (Exception ex)
             {
@@ -85,7 +87,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto createDto)
         {
             try
@@ -105,7 +107,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> UpdateCategory(
             int id,
             [FromBody] UpdateCategoryDto updateDto
@@ -128,7 +130,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try
@@ -156,7 +158,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPatch("{id}/toggle-status")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> ToggleCategoryStatus(int id)
         {
             try

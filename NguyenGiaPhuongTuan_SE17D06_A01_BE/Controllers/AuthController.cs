@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Services.DTOs;
 using Services.DTOs.Auth;
 using Services.Interface;
 
@@ -50,12 +53,88 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
 
                 _logger.LogInformation("User {Email} logged in successfully", request.Email);
 
-                return Success(result.User, "Đăng nhập thành công.");
+                return Success(result, "Đăng nhập thành công.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during login for user {Email}", request.Email);
                 return Error("Có lỗi xảy ra trong quá trình đăng nhập.", 500);
+            }
+        }
+
+        [HttpPost("google-login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return ValidationError(ModelState, "Thông tin đăng nhập Google không hợp lệ.");
+                }
+
+                var result = await _authService.GoogleLoginAsync(request);
+
+                if (result == null)
+                {
+                    return Unauthorized("Google ID token không hợp lệ hoặc có lỗi xảy ra.");
+                }
+
+                // Chỉ set cookie nếu frontend yêu cầu (tùy chọn)
+                var setCookie =
+                    Request.Headers.ContainsKey("X-Set-Cookie")
+                    && Request.Headers["X-Set-Cookie"].ToString().ToLower() == "true";
+
+                if (setCookie)
+                {
+                    _authService.SetTokenCookie(
+                        "accessToken",
+                        result.AccessToken,
+                        result.AccessTokenExpires,
+                        Response
+                    );
+                    _authService.SetTokenCookie(
+                        "refreshToken",
+                        result.RefreshToken,
+                        result.RefreshTokenExpires,
+                        Response
+                    );
+                }
+
+                _logger.LogInformation(
+                    "User {Email} logged in via Google successfully",
+                    result.User.AccountEmail
+                );
+
+                return Success(result, "Đăng nhập bằng Google thành công.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during Google login");
+                return Error("Có lỗi xảy ra trong quá trình đăng nhập bằng Google.", 500);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Register([FromBody] CreateSystemAccountDto createDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return ValidationError(ModelState);
+                }
+
+                var createdAccount = await _authService.Register(createDto);
+                return Created(createdAccount, "Tạo tài khoản thành công");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ValidationError(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Error($"Lỗi khi tạo tài khoản: {ex.Message}");
             }
         }
 
@@ -351,5 +430,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                 );
             }
         }
+
+        
     }
 }

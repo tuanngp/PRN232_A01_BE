@@ -7,38 +7,30 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Repositories;
-using Repositories.Interface;
+using Services.DTOs;
 using Services.DTOs.Auth;
 using Services.Interface;
 using Services.Util;
+using Google.Apis.Auth;
 
 namespace Services.Impl
 {
     public class AuthService : IAuthService
     {
-        private readonly ISystemAccountService _systemAccountService;
         private readonly IConfiguration _configuration;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-        public AuthService(
-            ISystemAccountService systemAccountService,
-            IConfiguration configuration,
-            IUnitOfWork unitOfWork,
-            IRefreshTokenRepository refreshTokenRepository
-        )
+        public AuthService(IConfiguration configuration, IUnitOfWork unitOfWork)
         {
-            _systemAccountService = systemAccountService;
             _configuration = configuration;
             _unitOfWork = unitOfWork;
-            _refreshTokenRepository = refreshTokenRepository;
         }
 
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
             try
             {
-                var accounts = await _systemAccountService.GetAllAsync();
+                var accounts = await _unitOfWork.SystemAccounts.GetAllAsync();
                 var user = accounts.FirstOrDefault(x =>
                     x.AccountEmail.Equals(request.Email, StringComparison.OrdinalIgnoreCase)
                 );
@@ -53,6 +45,97 @@ namespace Services.Impl
                 if (!PasswordUtil.VerifyPassword(request.Password, user.AccountPassword))
                 {
                     throw new UnauthorizedAccessException("Mật khẩu không chính xác");
+                }
+
+                // Generate JWT token
+                var token = await GenerateTokenAsync(
+                    user.AccountId,
+                    user.AccountEmail,
+                    user.AccountRole.ToString()
+                );
+
+                // Generate refresh token
+                var refreshToken = await GenerateRefreshTokenAsync(user.AccountId);
+
+                // Lưu refresh token vào database
+                await _unitOfWork.SaveChangesAsync();
+
+                var accessDurationInMinutes = Convert.ToInt32(
+                    _configuration.GetSection("Jwt")["DurationInMinutes"] ?? "60"
+                );
+
+                var refreshDurationInDays = Convert.ToInt32(
+                    _configuration.GetSection("Jwt")["RefreshTokenDurationInDays"] ?? "7"
+                );
+                var accessTokenExpires = DateTime.UtcNow.AddMinutes(accessDurationInMinutes);
+                var refreshTokenExpires = DateTime.UtcNow.AddDays(refreshDurationInDays);
+
+                return new LoginResponse
+                {
+                    AccessToken = token,
+                    RefreshToken = refreshToken.Token,
+                    AccessTokenExpires = accessTokenExpires,
+                    RefreshTokenExpires = refreshTokenExpires,
+                    User = new UserInfo
+                    {
+                        AccountId = user.AccountId,
+                        AccountName = user.AccountName,
+                        AccountEmail = user.AccountEmail,
+                        AccountRole = user.AccountRole.ToString(),
+                    },
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<LoginResponse?> GoogleLoginAsync(GoogleLoginRequest request)
+        {
+            try
+            {
+                // Validate Google ID token
+                var clientId = _configuration["Authentication:Google:ClientId"];
+                if (string.IsNullOrEmpty(clientId))
+                {
+                    throw new InvalidOperationException("Google Client ID chưa được cấu hình");
+                }
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { clientId }
+                });
+
+                if (payload == null)
+                {
+                    throw new UnauthorizedAccessException("Google ID token không hợp lệ");
+                }
+
+                // Tìm hoặc tạo user trong database
+                var accounts = await _unitOfWork.SystemAccounts.GetAllAsync();
+                var user = accounts.FirstOrDefault(x =>
+                    x.AccountEmail.Equals(payload.Email, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (user == null)
+                {
+                    // Tạo user mới từ thông tin Google
+                    user = new SystemAccount
+                    {
+                        AccountName = payload.Name ?? payload.Email,
+                        AccountEmail = payload.Email,
+                        AccountPassword = PasswordUtil.HashPassword(Guid.NewGuid().ToString()), // Random password for Google users
+                        AccountRole = BusinessObject.Enums.AccountRole.Staff, // Default role
+                        IsActive = true
+                    };
+
+                    await _unitOfWork.SystemAccounts.AddAsync(user);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                else if (!user.IsActive)
+                {
+                    throw new UnauthorizedAccessException("Tài khoản đã bị vô hiệu hóa");
                 }
 
                 // Generate JWT token
@@ -131,7 +214,7 @@ namespace Services.Impl
                 }
 
                 // Check if refresh token exists and is valid
-                var refreshToken = await _refreshTokenRepository.GetByTokenAsync(
+                var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(
                     request.RefreshToken
                 );
                 if (refreshToken == null)
@@ -198,7 +281,7 @@ namespace Services.Impl
         {
             try
             {
-                var refreshToken = await _refreshTokenRepository.GetByTokenAsync(
+                var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(
                     request.RefreshToken
                 );
                 if (refreshToken == null)
@@ -241,7 +324,7 @@ namespace Services.Impl
         {
             try
             {
-                await _refreshTokenRepository.RevokeAllTokensForUserAsync(accountId, reason);
+                await _unitOfWork.RefreshTokens.RevokeAllTokensForUserAsync(accountId, reason);
                 await _unitOfWork.SaveChangesAsync();
                 return true;
             }
@@ -312,7 +395,7 @@ namespace Services.Impl
             };
 
             // Save to database
-            await _refreshTokenRepository.AddAsync(refreshTokenEntity);
+            await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
 
             return refreshTokenEntity;
         }
@@ -458,6 +541,26 @@ namespace Services.Impl
             {
                 return null;
             }
+        }
+
+        public async Task<LoginResponse?> Register(CreateSystemAccountDto createDto)
+        {
+            var account = new SystemAccount
+            {
+                AccountName = createDto.AccountName.Trim(),
+                AccountEmail = createDto.AccountEmail.Trim().ToLower(),
+                AccountPassword = createDto.AccountPassword,
+                AccountRole = createDto.AccountRole,
+                IsActive = true,
+            };
+            await _unitOfWork.SystemAccounts.AddAsync(account);
+
+            var loginRequest = new LoginRequest
+            {
+                Email = account.AccountEmail,
+                Password = account.AccountPassword,
+            };
+            return await LoginAsync(loginRequest);
         }
     }
 }

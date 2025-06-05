@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
 using Services.DTOs;
 using Services.Interface;
 
@@ -15,6 +16,15 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         public NewsArticleTagController(INewsArticleTagService newsArticleTagService)
         {
             _newsArticleTagService = newsArticleTagService;
+        }
+
+        [HttpGet]
+        [EnableQuery]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNewsArticleTags()
+        {
+            var newsTag = await _newsArticleTagService.GetAllAsync();
+            return Ok(newsTag);
         }
 
         [HttpGet("article/{articleId}/tags")]
@@ -56,7 +66,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost("article/{articleId}/tags")]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> AddTagToArticle(
             int articleId,
             [FromBody] AddTagToArticleDto addTagDto
@@ -100,7 +110,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPost("article/{articleId}/tags/bulk")]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> AddMultipleTagsToArticle(
             int articleId,
             [FromBody] AddMultipleTagsDto addTagsDto
@@ -144,7 +154,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("article/{articleId}/tags/{tagId}")]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> RemoveTagFromArticle(int articleId, int tagId)
         {
             try
@@ -184,7 +194,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpPut("article/{articleId}/tags")]
-        [Authorize(Roles = "Admin,Staff,Lecturer")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> ReplaceArticleTags(
             int articleId,
             [FromBody] ReplaceTagsDto replaceTagsDto

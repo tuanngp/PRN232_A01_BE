@@ -8,7 +8,5 @@ namespace Repositories.Impl
     {
         public CategoryRepository(FUNewsDbContext context)
             : base(context) { }
-
-        // Specific methods for Category can be added here if needed
     }
 }

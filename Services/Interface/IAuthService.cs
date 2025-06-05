@@ -1,5 +1,6 @@
 using BusinessObject;
 using Microsoft.AspNetCore.Http;
+using Services.DTOs;
 using Services.DTOs.Auth;
 
 namespace Services.Interface
@@ -7,6 +8,7 @@ namespace Services.Interface
     public interface IAuthService
     {
         Task<LoginResponse?> LoginAsync(LoginRequest request);
+        Task<LoginResponse?> GoogleLoginAsync(GoogleLoginRequest request);
         Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest request);
         Task<bool> RevokeTokenAsync(RevokeTokenRequest request, int? accountId = null);
         Task<bool> RevokeAllUserTokensAsync(int accountId, string reason = "User logged out");
@@ -22,5 +24,6 @@ namespace Services.Interface
             HttpResponse response
         );
         void ClearTokenCookies(HttpResponse response);
+        Task<LoginResponse?> Register(CreateSystemAccountDto createDto);
     }
 }

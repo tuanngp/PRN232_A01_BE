@@ -1,7 +1,6 @@
 ﻿using BusinessObject;
 using Microsoft.Extensions.Logging;
 using Repositories;
-using Repositories.Interface;
 using Services.DTOs;
 using Services.Interface;
 
@@ -9,23 +8,11 @@ namespace Services.Impl
 {
     public class NewsArticleTagService : INewsArticleTagService
     {
-        private readonly INewsArticleTagRepository _newsArticleTagRepository;
-        private readonly INewsArticleRepository _newsArticleRepository;
-        private readonly ITagRepository _tagRepository;
         private readonly ILogger<NewsArticleTagService> _logger;
         private readonly IUnitOfWork _unitOfWork;
 
-        public NewsArticleTagService(
-            INewsArticleTagRepository newsArticleTagRepository,
-            INewsArticleRepository newsArticleRepository,
-            ITagRepository tagRepository,
-            ILogger<NewsArticleTagService> logger,
-            IUnitOfWork unitOfWork
-        )
+        public NewsArticleTagService(ILogger<NewsArticleTagService> logger, IUnitOfWork unitOfWork)
         {
-            _newsArticleTagRepository = newsArticleTagRepository;
-            _newsArticleRepository = newsArticleRepository;
-            _tagRepository = tagRepository;
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
@@ -39,7 +26,7 @@ namespace Services.Impl
 
                 await ValidateNewsArticleTag(entity);
 
-                await _newsArticleTagRepository.AddAsync(entity);
+                await _unitOfWork.NewsArticleTags.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -64,11 +51,11 @@ namespace Services.Impl
         {
             try
             {
-                var mapping = await _newsArticleTagRepository.GetByIdAsync(id);
+                var mapping = await _unitOfWork.NewsArticleTags.GetByIdAsync(id);
                 if (mapping == null)
                     return false;
 
-                _newsArticleTagRepository.Delete(mapping);
+                _unitOfWork.NewsArticleTags.Delete(mapping);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -93,7 +80,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _newsArticleTagRepository.GetAllAsync();
+                return await _unitOfWork.NewsArticleTags.GetAllAsync();
             }
             catch (Exception ex)
             {
@@ -110,7 +97,7 @@ namespace Services.Impl
         {
             try
             {
-                return await _newsArticleTagRepository.GetByIdAsync(id);
+                return await _unitOfWork.NewsArticleTags.GetByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -131,7 +118,7 @@ namespace Services.Impl
                 if (entity == null)
                     throw new ArgumentNullException(nameof(entity));
 
-                var existingMapping = await _newsArticleTagRepository.GetByIdAsync(
+                var existingMapping = await _unitOfWork.NewsArticleTags.GetByIdAsync(
                     entity.NewsArticleId
                 );
                 if (existingMapping == null)
@@ -139,7 +126,7 @@ namespace Services.Impl
 
                 await ValidateNewsArticleTag(entity);
 
-                _newsArticleTagRepository.Update(entity);
+                _unitOfWork.NewsArticleTags.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
@@ -162,18 +149,18 @@ namespace Services.Impl
 
         public async Task<IEnumerable<NewsArticleTagDto>> GetTagsByArticleAsync(int articleId)
         {
-            var article = await _newsArticleRepository.GetByIdAsync(articleId);
+            var article = await _unitOfWork.NewsArticles.GetByIdAsync(articleId);
             if (article == null)
             {
                 throw new InvalidOperationException("Không tìm thấy bài viết");
             }
 
-            var articleTags = await _newsArticleTagRepository.GetByNewsArticleIdAsync(articleId);
+            var articleTags = await _unitOfWork.NewsArticleTags.GetByNewsArticleIdAsync(articleId);
             var result = new List<NewsArticleTagDto>();
 
             foreach (var articleTag in articleTags)
             {
-                var tag = await _tagRepository.GetByIdAsync(articleTag.TagId);
+                var tag = await _unitOfWork.Tags.GetByIdAsync(articleTag.TagId);
                 if (tag != null)
                 {
                     result.Add(
@@ -192,18 +179,18 @@ namespace Services.Impl
 
         public async Task<IEnumerable<ArticleTagSummaryDto>> GetArticlesByTagAsync(int tagId)
         {
-            var tag = await _tagRepository.GetByIdAsync(tagId);
+            var tag = await _unitOfWork.Tags.GetByIdAsync(tagId);
             if (tag == null)
             {
                 throw new InvalidOperationException("Không tìm thấy tag");
             }
 
-            var articleTags = await _newsArticleTagRepository.GetByTagIdAsync(tagId);
+            var articleTags = await _unitOfWork.NewsArticleTags.GetByTagIdAsync(tagId);
             var result = new List<ArticleTagSummaryDto>();
 
             foreach (var articleTag in articleTags)
             {
-                var article = await _newsArticleRepository.GetByIdAsync(articleTag.NewsArticleId);
+                var article = await _unitOfWork.NewsArticles.GetByIdAsync(articleTag.NewsArticleId);
                 if (article != null)
                 {
                     result.Add(
@@ -237,7 +224,7 @@ namespace Services.Impl
         {
             await ValidateArticleAccessAsync(articleId, currentUserId, isAdminOrStaff);
 
-            var tag = await _tagRepository.GetByIdAsync(addTagDto.TagId);
+            var tag = await _unitOfWork.Tags.GetByIdAsync(addTagDto.TagId);
             if (tag == null)
             {
                 throw new InvalidOperationException("Không tìm thấy tag");
@@ -273,7 +260,7 @@ namespace Services.Impl
         {
             await ValidateArticleAccessAsync(articleId, currentUserId, isAdminOrStaff);
 
-            var allTags = await _tagRepository.GetAllAsync();
+            var allTags = await _unitOfWork.Tags.GetAllAsync();
             var existingArticleTagIds = (await GetTagsByArticleAsync(articleId))
                 .Select(t => t.TagId)
                 .ToHashSet();
@@ -321,7 +308,7 @@ namespace Services.Impl
                 );
             }
 
-            var article = await _newsArticleRepository.GetByIdAsync(articleId);
+            var article = await _unitOfWork.NewsArticles.GetByIdAsync(articleId);
             return new
             {
                 ArticleId = articleId,
@@ -366,7 +353,7 @@ namespace Services.Impl
         {
             await ValidateArticleAccessAsync(articleId, currentUserId, isAdminOrStaff);
 
-            var allTags = await _tagRepository.GetAllAsync();
+            var allTags = await _unitOfWork.Tags.GetAllAsync();
             var validTagIds = new List<int>();
             var invalidTagIds = new List<int>();
 
@@ -392,7 +379,7 @@ namespace Services.Impl
                 );
             }
 
-            var currentArticleTags = await _newsArticleTagRepository.GetByNewsArticleIdAsync(
+            var currentArticleTags = await _unitOfWork.NewsArticleTags.GetByNewsArticleIdAsync(
                 articleId
             );
             await DeleteArticleTagsAsync(currentArticleTags);
@@ -418,7 +405,7 @@ namespace Services.Impl
                 );
             }
 
-            var article = await _newsArticleRepository.GetByIdAsync(articleId);
+            var article = await _unitOfWork.NewsArticles.GetByIdAsync(articleId);
             return new
             {
                 ArticleId = articleId,
@@ -436,7 +423,7 @@ namespace Services.Impl
             }
 
             var allArticleTags = await GetAllAsync();
-            var allTags = await _tagRepository.GetAllAsync();
+            var allTags = await _unitOfWork.Tags.GetAllAsync();
 
             var tagStatistics = allTags
                 .Select(tag => new TagStatisticDto
@@ -458,7 +445,7 @@ namespace Services.Impl
             bool isAdminOrStaff
         )
         {
-            var article = await _newsArticleRepository.GetByIdAsync(articleId);
+            var article = await _unitOfWork.NewsArticles.GetByIdAsync(articleId);
             if (article == null)
             {
                 throw new InvalidOperationException("Không tìm thấy bài viết");
@@ -503,7 +490,7 @@ namespace Services.Impl
             if (entity.TagId <= 0)
                 throw new ArgumentException("Invalid tag ID");
 
-            var newsArticle = await _newsArticleRepository.GetByIdAsync(entity.NewsArticleId);
+            var newsArticle = await _unitOfWork.NewsArticles.GetByIdAsync(entity.NewsArticleId);
             if (newsArticle == null)
                 throw new InvalidOperationException(
                     $"News article with ID {entity.NewsArticleId} not found"
@@ -512,7 +499,7 @@ namespace Services.Impl
             if (newsArticle.IsDeleted)
                 throw new InvalidOperationException("Cannot tag a deleted news article");
 
-            var tag = await _tagRepository.GetByIdAsync(entity.TagId);
+            var tag = await _unitOfWork.Tags.GetByIdAsync(entity.TagId);
             if (tag == null)
                 throw new InvalidOperationException($"Tag with ID {entity.TagId} not found");
 

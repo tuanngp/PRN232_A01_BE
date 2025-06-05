@@ -67,7 +67,9 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 );
             });
             builder.Services.AddDbContext<FUNewsDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+                options
+                    .UseLazyLoadingProxies()
+                    .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
 
             builder.Services.AddScoped<FUNewsDbContext>();
@@ -163,6 +165,21 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                     };
                 });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(
+                    "AllowFrontend",
+                    policy =>
+                    {
+                        policy
+                            .WithOrigins("http://localhost:3000")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    }
+                );
+            });
+
             builder.Services.AddAuthorization(options =>
             {
                 options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
@@ -192,7 +209,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 );
             var app = builder.Build();
 
-            // Đăng ký Exception Handling Middleware (phải đầu tiên)
             app.UseExceptionHandling();
 
             if (app.Environment.IsDevelopment())
@@ -201,9 +217,10 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 app.UseSwaggerUI();
             }
 
+            app.UseCors("AllowFrontend");
+
             app.UseHttpsRedirection();
 
-            // Cấu hình để xử lý lỗi authentication
             app.Use(
                 async (context, next) =>
                 {
@@ -219,7 +236,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
                 }
             );
 
-            // Đăng ký OData Response Wrapper (trước authentication)
             app.UseODataResponseWrapper();
 
             app.UseAuthentication();
@@ -227,7 +243,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
 
             app.MapControllers();
 
-            // Seed all data
             using (var scope = app.Services.CreateScope())
             {
                 var seedDataService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
@@ -240,15 +255,14 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE
             {
                 var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();
 
-                builder.EntitySet<SystemAccount>("SystemAccounts");
-                builder.EntitySet<NewsArticle>("NewsArticles");
-                builder.EntitySet<Category>("Categories");
-                builder.EntitySet<Tag>("Tags");
+                builder.EntitySet<SystemAccount>("SystemAccount");
+                builder.EntitySet<NewsArticle>("NewsArticle");
+                builder.EntitySet<Category>("Category");
+                builder.EntitySet<Tag>("Tag");
                 builder
                     .EntityType<NewsArticleTag>()
                     .HasKey(nt => new { nt.NewsArticleId, nt.TagId });
-                builder.EntitySet<NewsArticleTag>("NewsArticleTags");
-
+                builder.EntitySet<NewsArticleTag>("NewsArticleTag");
                 return builder.GetEdmModel();
             }
         }
