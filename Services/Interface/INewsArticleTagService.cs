@@ -39,5 +39,6 @@ namespace Services.Interface
         );
         Task<bool> ArticleTagExistsAsync(int articleId, int tagId);
         Task<bool> DeleteArticleTagsAsync(IEnumerable<NewsArticleTag> articleTags);
+        Task<bool> HardDeleteArticleTagAsync(int articleId, int tagId, int currentUserId, bool isAdmin);
     }
 }

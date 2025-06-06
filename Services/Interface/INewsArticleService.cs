@@ -26,5 +26,6 @@ namespace Services.Interface
         Task<NewsArticleDto?> GetNewsArticleByIdAsync(int id);
         Task<IEnumerable<NewsArticleDto>> GetAllNewsArticlesAsync();
         Task<bool> DeleteNewsArticleAsync(int id, int currentUserId, bool isAdminOrStaff);
+        Task<bool> HardDeleteNewsArticleAsync(int id, int currentUserId, bool isAdmin);
     }
 }

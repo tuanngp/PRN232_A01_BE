@@ -8,5 +8,6 @@
         Task<TEntity> AddAsync(TEntity entity);
         Task<TEntity> UpdateAsync(TEntity entity);
         Task<bool> DeleteAsync(object id);
+        Task<bool> HardDeleteAsync(object id);
     }
 }

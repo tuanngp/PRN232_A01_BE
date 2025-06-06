@@ -14,5 +14,6 @@ namespace Services.Interface
         Task<IEnumerable<PopularTagDto>> GetTagStatisticsAsync();
         Task<BulkCreateResultDto> CreateBulkTagsAsync(CreateBulkTagsDto bulkDto);
         Task<bool> IsTagNameInUseAsync(string tagName, int? excludeTagId = null);
+        Task<bool> HardDeleteTagAsync(int id, int currentUserId, bool isAdmin);
     }
 }

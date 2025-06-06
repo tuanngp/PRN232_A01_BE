@@ -355,6 +355,55 @@ namespace Services.Impl
             }
         }
 
+        public async Task<bool> HardDeleteAsync(object id)
+        {
+            try
+            {
+                var category = await _unitOfWork.Categories.GetByIdAsync(id);
+                if (category == null)
+                    return false;
+
+                if (category.SubCategories.Any())
+                    throw new InvalidOperationException(
+                        "Cannot hard delete category with subcategories"
+                    );
+
+                if (category.NewsArticles.Any())
+                    throw new InvalidOperationException(
+                        "Cannot hard delete category with news articles"
+                    );
+
+                _unitOfWork.Categories.Delete(category);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Hard deleted category with ID: {CategoryId}", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting category: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteCategoryAsync(int id, int currentUserId, bool isAdmin)
+        {
+            try
+            {
+                if (!isAdmin)
+                {
+                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng danh mục");
+                }
+
+                return await HardDeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting category: {Message}", ex.Message);
+                throw;
+            }
+        }
+
         private CategoryDto MapToCategoryDto(Category category)
         {
             if (category == null)

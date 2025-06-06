@@ -172,6 +172,41 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             }
         }
 
+        [HttpDelete("{id}/hard")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> HardDeleteNewsArticle(int id)
+        {
+            try
+            {
+                var (currentUserId, _, _) = GetCurrentUser();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized("Không thể xác định người dùng");
+                }
+
+                var isAdmin = HasRole("Admin");
+                var result = await _newsArticleService.HardDeleteNewsArticleAsync(
+                    id,
+                    currentUserId.Value,
+                    isAdmin
+                );
+
+                if (result)
+                {
+                    return Success("Xóa cứng bài viết thành công");
+                }
+                return Error("Không thể xóa cứng bài viết");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbidden(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Error($"Lỗi khi xóa cứng bài viết: {ex.Message}");
+            }
+        }
+
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> ChangeNewsStatus(

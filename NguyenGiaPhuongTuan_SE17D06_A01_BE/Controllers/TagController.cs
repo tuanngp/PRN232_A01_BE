@@ -152,6 +152,45 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             }
         }
 
+        [HttpDelete("{id}/hard")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> HardDeleteTag(int id)
+        {
+            try
+            {
+                var (currentUserId, _, _) = GetCurrentUser();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized("Không thể xác định người dùng");
+                }
+
+                var isAdmin = HasRole("Admin");
+                var result = await _tagService.HardDeleteTagAsync(
+                    id,
+                    currentUserId.Value,
+                    isAdmin
+                );
+
+                if (result)
+                {
+                    return Success("Xóa cứng tag thành công");
+                }
+                return Error("Không thể xóa cứng tag");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbidden(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Error($"Lỗi khi xóa cứng tag: {ex.Message}");
+            }
+        }
+
         [HttpGet("statistics")]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetTagStatistics()

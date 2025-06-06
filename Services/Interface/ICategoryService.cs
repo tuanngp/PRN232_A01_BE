@@ -12,5 +12,6 @@ namespace Services.Interface
         Task<CategoryDto> UpdateAsync(int id, UpdateCategoryDto updateDto);
         Task<CategoryDto?> GetCategoryByIdAsync(int id);
         Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync();
+        Task<bool> HardDeleteCategoryAsync(int id, int currentUserId, bool isAdmin);
     }
 }

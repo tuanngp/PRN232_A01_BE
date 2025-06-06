@@ -69,6 +69,53 @@ namespace Services.Impl
             }
         }
 
+        public async Task<bool> HardDeleteAsync(object id)
+        {
+            try
+            {
+                var tag = await _unitOfWork.Tags.GetByIdAsync(id);
+                if (tag == null)
+                    return false;
+
+                // Kiểm tra xem tag có đang được sử dụng trong bài viết nào không
+                if (tag.NewsArticleTags != null && tag.NewsArticleTags.Any())
+                {
+                    throw new InvalidOperationException(
+                        "Không thể xóa cứng tag đang được sử dụng trong bài viết"
+                    );
+                }
+
+                _unitOfWork.Tags.Delete(tag);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Hard deleted tag with ID: {TagId}", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting tag: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteTagAsync(int id, int currentUserId, bool isAdmin)
+        {
+            try
+            {
+                if (!isAdmin)
+                {
+                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng tag");
+                }
+
+                return await HardDeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting tag: {Message}", ex.Message);
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<Tag>> GetAllAsync()
         {
             try

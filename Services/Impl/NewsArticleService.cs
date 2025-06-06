@@ -128,6 +128,57 @@ namespace Services.Impl
             }
         }
 
+        public async Task<bool> HardDeleteAsync(object id)
+        {
+            try
+            {
+                var article = await _unitOfWork.NewsArticles.GetByIdAsync(id);
+                if (article == null)
+                    return false;
+
+                // Xóa tất cả NewsArticleTag liên quan trước
+                var relatedTags = await _unitOfWork.NewsArticleTags.GetByNewsArticleIdAsync((int)id);
+                foreach (var tag in relatedTags)
+                {
+                    _unitOfWork.NewsArticleTags.Delete(tag);
+                }
+
+                // Xóa bài viết
+                _unitOfWork.NewsArticles.Delete(article);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Hard deleted article with ID: {NewsArticleId}", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting news article: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteNewsArticleAsync(
+            int id,
+            int currentUserId,
+            bool isAdmin
+        )
+        {
+            try
+            {
+                if (!isAdmin)
+                {
+                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng bài viết");
+                }
+
+                return await HardDeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting news article: {Message}", ex.Message);
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<NewsArticle>> GetAllAsync()
         {
             try

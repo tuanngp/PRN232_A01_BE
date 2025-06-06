@@ -157,6 +157,45 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             }
         }
 
+        [HttpDelete("{id}/hard")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> HardDeleteCategory(int id)
+        {
+            try
+            {
+                var (currentUserId, _, _) = GetCurrentUser();
+                if (!currentUserId.HasValue)
+                {
+                    return Unauthorized("Không thể xác định người dùng");
+                }
+
+                var isAdmin = HasRole("Admin");
+                var result = await _categoryService.HardDeleteCategoryAsync(
+                    id,
+                    currentUserId.Value,
+                    isAdmin
+                );
+
+                if (result)
+                {
+                    return Success("Xóa cứng danh mục thành công");
+                }
+                return Error("Không thể xóa cứng danh mục");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbidden(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Error($"Lỗi khi xóa cứng danh mục: {ex.Message}");
+            }
+        }
+
         [HttpPatch("{id}/toggle-status")]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> ToggleCategoryStatus(int id)
