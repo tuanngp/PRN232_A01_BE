@@ -1,8 +1,5 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Services.DTOs;
 using Services.DTOs.Auth;
 using Services.Interface;
 
@@ -80,7 +77,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Google ID token không hợp lệ hoặc có lỗi xảy ra.");
                 }
 
-                // Chỉ set cookie nếu frontend yêu cầu (tùy chọn)
                 var setCookie =
                     Request.Headers.ContainsKey("X-Set-Cookie")
                     && Request.Headers["X-Set-Cookie"].ToString().ToLower() == "true";
@@ -112,29 +108,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             {
                 _logger.LogError(ex, "Error occurred during Google login");
                 return Error("Có lỗi xảy ra trong quá trình đăng nhập bằng Google.", 500);
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Register([FromBody] CreateSystemAccountDto createDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return ValidationError(ModelState);
-                }
-
-                var createdAccount = await _authService.Register(createDto);
-                return Created(createdAccount, "Tạo tài khoản thành công");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return ValidationError(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return Error($"Lỗi khi tạo tài khoản: {ex.Message}");
             }
         }
 
@@ -186,45 +159,6 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
             {
                 _logger.LogError(ex, "Error occurred during token refresh");
                 _authService.ClearTokenCookies(Response);
-                return Error("Có lỗi xảy ra trong quá trình refresh token.", 500);
-            }
-        }
-
-        [HttpPost("refresh-token-manual")]
-        [AllowAnonymous]
-        public async Task<IActionResult> RefreshTokenManual([FromBody] RefreshTokenRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return ValidationError(ModelState, "Thông tin refresh token không hợp lệ.");
-                }
-
-                var result = await _authService.RefreshTokenAsync(request);
-
-                if (result == null)
-                {
-                    return Unauthorized("Refresh token không hợp lệ hoặc đã hết hạn.");
-                }
-
-                _authService.SetTokenCookie(
-                    "accessToken",
-                    result.AccessToken,
-                    result.AccessTokenExpires,
-                    Response
-                );
-                _authService.SetTokenCookie(
-                    "refreshToken",
-                    result.RefreshToken,
-                    result.RefreshTokenExpires,
-                    Response
-                );
-                return Success(result, "Refresh token thành công.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred during manual token refresh");
                 return Error("Có lỗi xảy ra trong quá trình refresh token.", 500);
             }
         }
@@ -430,7 +364,5 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                 );
             }
         }
-
-        
     }
 }

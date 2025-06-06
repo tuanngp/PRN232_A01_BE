@@ -65,6 +65,7 @@ namespace Services.Impl
                     Headline = createDto.Headline,
                     NewsContent = createDto.NewsContent,
                     NewsSource = createDto.NewsSource,
+                    ImageUrl = createDto.ImageUrl,
                     CategoryId = createDto.CategoryId,
                     CreatedById = currentUserId,
                     CreatedDate = DateTime.UtcNow,
@@ -285,6 +286,9 @@ namespace Services.Impl
             if (updateDto.NewsSource != null)
                 existingArticle.NewsSource = updateDto.NewsSource;
 
+            if (updateDto.ImageUrl != null)
+                existingArticle.ImageUrl = updateDto.ImageUrl;
+
             existingArticle.UpdatedById = currentUserId;
 
             var updatedArticle = await UpdateAsync(existingArticle);
@@ -343,6 +347,7 @@ namespace Services.Impl
                 Headline = article.Headline,
                 NewsContent = article.NewsContent,
                 NewsSource = article.NewsSource,
+                ImageUrl = article.ImageUrl,
                 CategoryId = article.CategoryId,
                 NewsStatus = article.NewsStatus,
                 CreatedDate = article.CreatedDate,

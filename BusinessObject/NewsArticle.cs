@@ -23,7 +23,7 @@ namespace BusinessObject
         [MaxLength(200)]
         public string? NewsSource { get; set; }
 
-        //public string? ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         public NewsStatus NewsStatus { get; set; }
 

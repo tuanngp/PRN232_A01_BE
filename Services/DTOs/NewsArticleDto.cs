@@ -18,6 +18,7 @@ namespace Services.DTOs
 
         [StringLength(200, ErrorMessage = "Nguồn tin không được vượt quá 200 ký tự")]
         public string? NewsSource { get; set; }
+        public string? ImageUrl { get; set; }
 
         [Required(ErrorMessage = "Danh mục là bắt buộc")]
         [Range(1, int.MaxValue, ErrorMessage = "ID danh mục phải lớn hơn 0")]
@@ -37,6 +38,7 @@ namespace Services.DTOs
 
         [StringLength(200, ErrorMessage = "Nguồn tin không được vượt quá 200 ký tự")]
         public string? NewsSource { get; set; }
+        public string? ImageUrl { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "ID danh mục phải lớn hơn 0")]
         public int? CategoryId { get; set; }
@@ -51,6 +53,7 @@ namespace Services.DTOs
         public string? NewsSource { get; set; }
         public int CategoryId { get; set; }
         public NewsStatus NewsStatus { get; set; }
+        public string? ImageUrl { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public int? CreatedById { get; set; }
