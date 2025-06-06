@@ -75,6 +75,58 @@ namespace Services.Impl
             }
         }
 
+        public async Task<bool> HardDeleteAsync(object id)
+        {
+            try
+            {
+                var account = await _unitOfWork.SystemAccounts.GetByIdAsync(id);
+                if (account == null)
+                    return false;
+
+                // Check if account has news articles
+                if ((account.CreatedNewsArticles != null && account.CreatedNewsArticles.Any()) ||
+                    (account.UpdatedNewsArticles != null && account.UpdatedNewsArticles.Any()))
+                    throw new InvalidOperationException(
+                        "Cannot hard delete account with news articles"
+                    );
+
+                _unitOfWork.SystemAccounts.Delete(account);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Hard deleted account with ID: {AccountId}", id);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting account: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteAccountAsync(int id, int currentUserId, bool isAdmin)
+        {
+            try
+            {
+                if (!isAdmin)
+                {
+                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng tài khoản");
+                }
+
+                // Prevent self-deletion
+                if (id == currentUserId)
+                {
+                    throw new InvalidOperationException("Không thể xóa tài khoản của chính mình");
+                }
+
+                return await HardDeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting account: {Message}", ex.Message);
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<SystemAccount>> GetAllAsync()
         {
             try

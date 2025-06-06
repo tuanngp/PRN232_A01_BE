@@ -28,7 +28,8 @@ namespace Services.Impl
                 ValidateNewsArticle(entity);
 
                 entity.CreatedDate = DateTime.UtcNow;
-                entity.NewsStatus = NewsStatus.Inactive;
+                entity.NewsStatus = NewsStatus.Active;
+                entity.IsDeleted = false;
 
                 await _unitOfWork.NewsArticles.AddAsync(entity);
                 await _unitOfWork.SaveChangesAsync();
@@ -69,7 +70,8 @@ namespace Services.Impl
                     CategoryId = createDto.CategoryId,
                     CreatedById = currentUserId,
                     CreatedDate = DateTime.UtcNow,
-                    NewsStatus = NewsStatus.Inactive,
+                    NewsStatus = NewsStatus.Active,
+                    IsDeleted = false,
                 };
 
                 var createdArticle = await AddAsync(article);
@@ -137,7 +139,9 @@ namespace Services.Impl
                     return false;
 
                 // Xóa tất cả NewsArticleTag liên quan trước
-                var relatedTags = await _unitOfWork.NewsArticleTags.GetByNewsArticleIdAsync((int)id);
+                var relatedTags = await _unitOfWork.NewsArticleTags.GetByNewsArticleIdAsync(
+                    (int)id
+                );
                 foreach (var tag in relatedTags)
                 {
                     _unitOfWork.NewsArticleTags.Delete(tag);
@@ -157,17 +161,15 @@ namespace Services.Impl
             }
         }
 
-        public async Task<bool> HardDeleteNewsArticleAsync(
-            int id,
-            int currentUserId,
-            bool isAdmin
-        )
+        public async Task<bool> HardDeleteNewsArticleAsync(int id, int currentUserId, bool isAdmin)
         {
             try
             {
                 if (!isAdmin)
                 {
-                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng bài viết");
+                    throw new UnauthorizedAccessException(
+                        "Chỉ Admin mới có quyền xóa cứng bài viết"
+                    );
                 }
 
                 return await HardDeleteAsync(id);
@@ -360,6 +362,7 @@ namespace Services.Impl
 
             article.NewsStatus = statusDto.Status;
             article.UpdatedById = currentUserId;
+            article.IsDeleted = !article.IsDeleted;
 
             var updatedArticle = await UpdateAsync(article);
             return MapToDto(updatedArticle);

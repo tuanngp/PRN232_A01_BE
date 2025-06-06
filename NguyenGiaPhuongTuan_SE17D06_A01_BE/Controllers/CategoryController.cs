@@ -158,7 +158,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("{id}/hard")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> HardDeleteCategory(int id)
         {
             try
@@ -169,7 +169,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                var isAdmin = HasRole("Admin");
+                var isAdmin = HasRole("Staff");
                 var result = await _categoryService.HardDeleteCategoryAsync(
                     id,
                     currentUserId.Value,

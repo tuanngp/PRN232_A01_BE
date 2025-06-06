@@ -4,7 +4,7 @@ namespace BusinessObject.Common
 {
     public abstract class SoftDeleteEntity : AuditableEntity, ISoftDelete
     {
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
         public int? DeletedById { get; set; }
 

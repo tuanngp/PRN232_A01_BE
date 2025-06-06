@@ -482,6 +482,61 @@ namespace Services.Impl
             }
         }
 
+        public async Task<bool> HardDeleteAsync(object id)
+        {
+            try
+            {
+                var mapping = await _unitOfWork.NewsArticleTags.GetByIdAsync(id);
+                if (mapping == null)
+                    return false;
+
+                _unitOfWork.NewsArticleTags.Delete(mapping);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Hard deleted news article tag mapping: Article ID {ArticleId}, Tag ID {TagId}",
+                    mapping.NewsArticleId,
+                    mapping.TagId
+                );
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error hard deleting news article tag mapping: {Message}",
+                    ex.Message
+                );
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteArticleTagAsync(int articleId, int tagId, int currentUserId, bool isAdmin)
+        {
+            try
+            {
+                if (!isAdmin)
+                {
+                    throw new UnauthorizedAccessException("Chỉ Admin mới có quyền xóa cứng liên kết tag");
+                }
+
+                var articleTags = await GetAllAsync();
+                var articleTag = articleTags.FirstOrDefault(at =>
+                    at.NewsArticleId == articleId && at.TagId == tagId
+                );
+
+                if (articleTag == null)
+                    return false;
+
+                return await HardDeleteAsync(articleTag.NewsArticleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hard deleting article tag: {Message}", ex.Message);
+                throw;
+            }
+        }
+
         private async Task ValidateNewsArticleTag(NewsArticleTag entity)
         {
             if (entity.NewsArticleId <= 0)

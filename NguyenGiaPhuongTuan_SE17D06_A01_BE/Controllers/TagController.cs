@@ -153,7 +153,7 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
         }
 
         [HttpDelete("{id}/hard")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> HardDeleteTag(int id)
         {
             try
@@ -164,12 +164,8 @@ namespace NguyenGiaPhuongTuan_SE17D06_A01_BE.Controllers
                     return Unauthorized("Không thể xác định người dùng");
                 }
 
-                var isAdmin = HasRole("Admin");
-                var result = await _tagService.HardDeleteTagAsync(
-                    id,
-                    currentUserId.Value,
-                    isAdmin
-                );
+                var isAdmin = HasRole("Staff");
+                var result = await _tagService.HardDeleteTagAsync(id, currentUserId.Value, isAdmin);
 
                 if (result)
                 {

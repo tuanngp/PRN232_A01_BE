@@ -15,5 +15,6 @@ namespace Services.Interface
         Task<bool> ResetPasswordAsync(int id, string newPassword);
         Task<SystemAccountDto> ToggleAccountStatusAsync(int id);
         Task<AccountStatisticsDto> GetAccountStatisticsAsync();
+        Task<bool> HardDeleteAccountAsync(int id, int currentUserId, bool isAdmin);
     }
 }
